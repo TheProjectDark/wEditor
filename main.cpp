@@ -189,6 +189,7 @@ void MainFrame::HighlightSyntax() {
     }
 }
 
+//function to get language for syntax highlighting based on file extension
 wxString MainFrame::GetLanguageForExtension(const wxString& filename) const {
     wxString ext = filename.AfterLast('.').Lower();
     if (ext == "cpp" || ext == "h" || ext == "hpp") {
