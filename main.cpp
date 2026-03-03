@@ -138,6 +138,7 @@ bool App::OnInit() {
     return true;
 }
 
+//update line number margin width according to line count
 void UpdateLineNumberMargin(wxStyledTextCtrl* textCtrl)
 {
     int lineCount = textCtrl->GetLineCount();
