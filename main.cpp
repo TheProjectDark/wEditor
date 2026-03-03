@@ -113,6 +113,7 @@ MainFrame::MainFrame(const wxString& title)
     Bind(wxEVT_MENU, &MainFrame::OnExit, this, wxID_EXIT);
     Bind(wxEVT_MENU, &MainFrame::OnAbout, this, wxID_ABOUT);
     Bind(wxEVT_STC_CHANGE, &MainFrame::OnText, this);
+
 }
 
 MainFrame::~MainFrame()
@@ -130,7 +131,6 @@ bool App::OnInit() {
     MainFrame* mainFrame = new MainFrame("wEditor");
     mainFrame->SetClientSize(mainFrame->FromDIP(wxSize(800, 600)));
     mainFrame->Show();
-    wxTheApp->Yield();  //process pending events to ensure UI is ready
     mainFrame->RestoreLastFile(); //restore last opened file on startup
 
     if (argc > 1) {
@@ -148,28 +148,24 @@ void MainFrame::RestoreLastFile()
 
     if (!lastFile.IsEmpty() && wxFileExists(lastFile))
     {
-        textCtrl->LoadFile(lastFile);
+        OpenFile(lastFile);
     }
 }
 
 //update line number margin width according to line count
-void UpdateLineNumberMargin(wxStyledTextCtrl* textCtrl)
+void MainFrame::UpdateLineNumberMargin()
 {
     int lineCount = textCtrl->GetLineCount();
     int digits = std::to_string(lineCount).length();
-
-    int width = textCtrl->TextWidth(
-        wxSTC_STYLE_LINENUMBER,
-        std::string(digits, '9')
-    );
-
+    int width = textCtrl->TextWidth(wxSTC_STYLE_LINENUMBER, std::string(digits, '9'));
     textCtrl->SetMarginWidth(0, width + 10);
 }
 
 //syntax highlight functions
 void MainFrame::OnText(wxCommandEvent& event) {
     HighlightSyntax();
-    UpdateLineNumberMargin(textCtrl);
+    UpdateLineNumberMargin();
+    highlightTimer.StartOnce(150);
 }
 void MainFrame::OnLanguageChange(wxCommandEvent& event) {
     currentLanguage = languageChoice->GetStringSelection();
@@ -247,7 +243,10 @@ bool IsFileSupported(const wxString& filename) {
     wxString ext = filename.AfterLast('.').Lower();
     std::vector<wxString> unsupportedFileFormats = {"docx", "xlsx", "pptx", "pdf", "exe", "dll", "bin", "iso", "img",
         "zip", "rar", "7z", "tar", "gz", "mp3", "wav", "flac", "ogg", "mp4", "avi", "mkv", "mov", "wmv", "flv", "webm",
-        "jpg", "jpeg", "png", "bmp", "gif", "svg", "psd", "ai", "eps", "ttf", "otf"};
+        "jpg", "jpeg", "png", "bmp", "gif", "svg", "psd", "ai", "eps", "ttf", "otf", "woff", "woff2", "eot", "ico", "cur", "ani",
+        "apk", "ipa", "dmg", "vmdk", "vhd", "vhdx", "qcow2", "raw", "img", "iso", "bin", "exe", "dll", "sys", "drv", "msi", "msix", "appx",
+        "deb", "rpm", "pkg", "tar.gz", "tar.bz2", "tar.xz", "7z", "zip", "rar", "gz", "bz2", "xz", "iso", "img", "bin", "exe", "dll",
+        "sys", "drv", "msi", "msix", "appx", "doc", "xls", "ppt", "docm", "xlsm", "pptm", "odt", "ods", "odp", "odg", "odf", "odb", "odc", "odi", "odm"};
     for (const auto& unsupported : unsupportedFileFormats) {
         if (ext == unsupported) return false;
     }
@@ -286,10 +285,9 @@ void MainFrame::OpenFile(const wxString& path)
     delete currentHighlighter;
     currentLanguage = languageChoice->GetStringSelection();
     currentHighlighter = HighlighterFactory::CreateHighlighter(currentLanguage);
+    wxConfigBase::Get()->Write("Session/LastFile", fullPath);
+    wxConfigBase::Get()->Flush();
     HighlightSyntax();
-    wxConfigBase* config = wxConfig::Get();
-    config->Write("Session/LastFile", fullPath);
-    config->Flush();
 }
 
 //open file dialog

@@ -23,6 +23,9 @@ class MainFrame : public wxFrame
         void OpenFile(const wxString& path);
         void RestoreLastFile();
 
+        //debounce for highlight
+        wxTimer highlightTimer;
+
     private:
         wxStyledTextCtrl* textCtrl;
         wxChoice* languageChoice;
@@ -38,4 +41,5 @@ class MainFrame : public wxFrame
         void OnLanguageChange(wxCommandEvent& event);
         void HighlightSyntax();
         wxString GetLanguageForExtension(const wxString& filename) const;
+        void UpdateLineNumberMargin();
 };
