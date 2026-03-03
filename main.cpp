@@ -95,20 +95,18 @@ MainFrame::MainFrame(const wxString& title)
     mainSizer->SetSizeHints(this);
     languageChoice->SetMinSize(wxSize(140, -1));
 
+    //tab
+    textCtrl->SetUseTabs(false);
+    textCtrl->SetTabWidth(4);
+    textCtrl->SetIndent(4);
+    textCtrl->SetTabIndents(true);
+    textCtrl->SetBackSpaceUnIndents(true);
+
     //setup bindings
     save->Bind(wxEVT_BUTTON, &MainFrame::OnSave, this);
     open->Bind(wxEVT_BUTTON, &MainFrame::OnOpen, this);
     languageChoice->Bind(wxEVT_CHOICE, &MainFrame::OnLanguageChange, this);
-    
-    textCtrl->Bind(wxEVT_KEY_DOWN, [this](wxKeyEvent& evt) {
-        if (evt.GetKeyCode() == WXK_TAB) {
-            int pos = textCtrl->GetCurrentPos();
-            textCtrl->InsertText(pos, "    ");
-            textCtrl->SetCurrentPos(pos + 4);
-            return;
-        }
-        evt.Skip();
-    });
+
     Bind(wxEVT_MENU, &MainFrame::OnOpen, this, wxID_OPEN);
     Bind(wxEVT_MENU, &MainFrame::OnSave, this, wxID_SAVE);
     Bind(wxEVT_MENU, &MainFrame::OnExit, this, wxID_EXIT);

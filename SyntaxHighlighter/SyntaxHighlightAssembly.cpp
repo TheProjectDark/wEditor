@@ -11,6 +11,8 @@
 
 void SyntaxHighlightAssembly::ApplyHighlight(wxStyledTextCtrl* textCtrl)
 {
+    textCtrl->ClearDocumentStyle(); //fix
+    textCtrl->SetLexer(wxSTC_LEX_NULL); //fix
     wxString text = textCtrl->GetValue();
     int length = text.length();
     
@@ -106,6 +108,7 @@ void SyntaxHighlightAssembly::ApplyHighlight(wxStyledTextCtrl* textCtrl)
         }
     }
     
-    // Apply all styles at once
-    textCtrl->SetStyleBytes(length, (char*)styles.c_str());
+    //apply all styles at once
+    textCtrl->StartStyling(0);
+    textCtrl->SetStyleBytes(length, styles.data());
 }

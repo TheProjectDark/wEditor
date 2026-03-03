@@ -11,20 +11,20 @@
 
 void SyntaxHighlightCPP::ApplyHighlight(wxStyledTextCtrl* textCtrl)
 {
-    textCtrl->ClearDocumentStyle();
-    textCtrl->SetLexer(wxSTC_LEX_NULL);
+    textCtrl->ClearDocumentStyle(); //fix
+    textCtrl->SetLexer(wxSTC_LEX_NULL); //fix
     wxString text = textCtrl->GetValue();
     int length = text.length();
     
-        //skip highlighting for empty text
+    //skip highlighting for empty text
     if (length == 0) return;
 
     highlightRange.occupiedRanges.clear();
 
-        //create style array
+    //create style array
     std::string styles(length, STYLE_DEFAULT);
 
-        //comments
+    //comments
     std::vector<wxString> comments = {
         "//", "/*", "*/"
     };
@@ -52,7 +52,7 @@ void SyntaxHighlightCPP::ApplyHighlight(wxStyledTextCtrl* textCtrl)
         }
     }
 
-        //strings
+    //strings
     std::vector<wxString> stringDelimiters = {
         "\"", "'"
     };
@@ -77,7 +77,7 @@ void SyntaxHighlightCPP::ApplyHighlight(wxStyledTextCtrl* textCtrl)
         }
     }
 
-        //preprocessor directives
+    //preprocessor directives
     std::vector<wxString> preprocessorDirectives = {
         "#include", "#define", "#ifdef", "#ifndef", "#endif", "#pragma"
     };
@@ -95,7 +95,7 @@ void SyntaxHighlightCPP::ApplyHighlight(wxStyledTextCtrl* textCtrl)
         }
     }
 
-        //namespaces
+    //namespaces
     std::vector<wxString> namespaces = {
         "std", "namespace"
     };
@@ -113,7 +113,7 @@ void SyntaxHighlightCPP::ApplyHighlight(wxStyledTextCtrl* textCtrl)
         }
     }
 
-        //function highlighting
+    //function highlighting
     std::vector<wxString> controlStatements = {
         "if", "else if", "while", "for", "switch", "catch"
     };
@@ -158,7 +158,7 @@ void SyntaxHighlightCPP::ApplyHighlight(wxStyledTextCtrl* textCtrl)
         pos = text.find("(", pos + 1);
     }
 
-        //types
+    //types
     std::vector<wxString> types = {
         "int", "float", "double", "char", "void", "bool", "long", "short", "unsigned", "signed", "std::string", "std::vector", "std::map", "string", "class"
     };
@@ -176,7 +176,7 @@ void SyntaxHighlightCPP::ApplyHighlight(wxStyledTextCtrl* textCtrl)
         }   
     }
 
-        //standard library functions
+    //standard library functions
     std::vector<wxString> standardLibraryFunctions = {
         "printf", "scanf", "cout", "cin", "endl", "std::cout", "std::cin"
     };
@@ -194,7 +194,7 @@ void SyntaxHighlightCPP::ApplyHighlight(wxStyledTextCtrl* textCtrl)
         }
     }
 
-        //keywords
+    //keywords
     std::vector<wxString> keywords = {
         "return", "if", "else", "while", "override", "virtual", "const", "static", "new", "delete", "this"
     };
@@ -212,7 +212,7 @@ void SyntaxHighlightCPP::ApplyHighlight(wxStyledTextCtrl* textCtrl)
         }
     }
 
-        //control structures
+    //control structures
     std::vector<wxString> controlStructures = {
         "for", "switch", "case", "break", "continue"
     };
@@ -230,7 +230,7 @@ void SyntaxHighlightCPP::ApplyHighlight(wxStyledTextCtrl* textCtrl)
         }
     }
 
-        //access modifiers
+    //access modifiers
     std::vector<wxString> accessModifiers = {
         "public", "private", "protected"
     };
@@ -248,7 +248,7 @@ void SyntaxHighlightCPP::ApplyHighlight(wxStyledTextCtrl* textCtrl)
         }
     }
 
-        //literals
+    //literals
     std::vector<wxString> literals = {
         "true", "false", "NULL"
     }; 
@@ -266,7 +266,7 @@ void SyntaxHighlightCPP::ApplyHighlight(wxStyledTextCtrl* textCtrl)
         }
     }
 
-        //multi char operators
+    //multi char operators
     std::vector<wxString> operators_multi = {
         "==", "!=", "<=", ">=", "&&", "||", "++", "--"
     };
@@ -284,7 +284,7 @@ void SyntaxHighlightCPP::ApplyHighlight(wxStyledTextCtrl* textCtrl)
         }
     }
 
-        //single char operators
+    //single char operators
     std::vector<wxString> operators_single = {
         "+", "-", "*", "/", "=", "<", ">"
     };
@@ -302,7 +302,7 @@ void SyntaxHighlightCPP::ApplyHighlight(wxStyledTextCtrl* textCtrl)
         }
     }
 
-        //symbols
+    //symbols
     std::vector<wxString> symbols = {
         "{", "}", "(", ")", "[", "]", ";", ",", "."
     };
