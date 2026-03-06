@@ -15,5 +15,40 @@
 PreferencesFrame::PreferencesFrame(const wxString& title) {
     wxFrame::Create(nullptr, wxID_ANY, title, wxDefaultPosition, wxSize(400, 300));
     wxPanel* panel = new wxPanel(this);
-    wxStaticText* label = new wxStaticText(panel, wxID_ANY, "Settings will be here in future updates.", wxPoint(20, 20));
+    //autosave choice
+    wxStaticText* autosaveLabel = new wxStaticText(panel, wxID_ANY, "Autosave:");
+    wxChoice* autosaveToggle = new wxChoice(panel, wxID_ANY);
+    autosaveToggle->Append("On");
+    autosaveToggle->Append("Off");
+    wxConfigBase* config = wxConfig::Get();
+    wxString autosaveValue = config->Read("Preferences/Autosave", "On");
+    autosaveToggle->SetStringSelection(autosaveValue);
+    autosaveToggle->Bind(wxEVT_CHOICE, [config](wxCommandEvent& event) {
+        wxString selection = event.GetString();
+        config->Write("Preferences/Autosave", selection);
+        config->Flush();
+    });
+
+    //set dark theme
+    wxColour darkBackground = ThemeSettings::GetBackgroundColour();
+    wxColour darkText = ThemeSettings::GetTextColour();
+    panel->SetBackgroundColour(darkBackground);
+    panel->SetForegroundColour(darkText);
+    SetBackgroundColour(darkBackground);
+    SetForegroundColour(darkText);
+    autosaveLabel->SetBackgroundColour(darkBackground);
+    autosaveLabel->SetForegroundColour(darkText);
+    autosaveToggle->SetBackgroundColour(ThemeSettings::GetButtonBackgroundColour());
+    autosaveToggle->SetForegroundColour(ThemeSettings::GetButtonForegroundColour());
+
+    //setup sizers
+    wxBoxSizer* mainSizer = new wxBoxSizer(wxVERTICAL);
+    wxBoxSizer* autosaveSizer = new wxBoxSizer(wxHORIZONTAL);
+    autosaveSizer->Add(autosaveLabel, 0, wxRIGHT, 5);
+    autosaveSizer->Add(autosaveToggle, 0);
+    mainSizer->Add(autosaveSizer, 0, wxALL, 10);
+    panel->SetSizer(mainSizer);
+    //set small size for autosave toggle
+    autosaveToggle->SetMinSize(wxSize(100, -1));
+    autosaveLabel->SetMinSize(wxSize(70, -1));
 }

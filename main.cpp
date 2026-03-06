@@ -91,7 +91,7 @@ MainFrame::MainFrame(const wxString& title)
     currentHighlighter = HighlighterFactory::CreateHighlighter("Text");
     
     wxColour buttonBackground = ThemeSettings::GetButtonBackgroundColour();
-    wxColour buttonForeground(255, 255, 255);
+    wxColour buttonForeground = ThemeSettings::GetButtonForegroundColour();
     
     newFile->SetBackgroundColour(buttonBackground);
     newFile->SetForegroundColour(buttonForeground);
@@ -489,14 +489,24 @@ void MainFrame::OnAbout(wxCommandEvent& event)
 //close app
 void MainFrame::OnExit(wxCommandEvent& event)
 {
-    //auto save current file on exit
-    if (!currentFilePath.IsEmpty()) {
-        wxString content = textCtrl->GetValue();
-        wxFile file;
-        if (file.Open(currentFilePath, wxFile::write))        {
-            file.Write(content);
-            file.Close();
+    //auto save current file on exit if enabled in preferences
+    wxConfigBase* config = wxConfig::Get();
+    wxString autosaveValue = config->Read("Preferences/Autosave", "On");
+
+    if (autosaveValue == "On")
+    {
+        if (!currentFilePath.IsEmpty())
+        {
+            wxString content = textCtrl->GetValue();
+            wxFile file;
+
+            if (file.Open(currentFilePath, wxFile::write))
+            {
+                file.Write(content);
+                file.Close();
+            }
         }
     }
+
     Close(true);
 }

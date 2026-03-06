@@ -27,6 +27,10 @@ public:
     static constexpr int BUTTON_BG_RED = 110;
     static constexpr int BUTTON_BG_GREEN = 110;
     static constexpr int BUTTON_BG_BLUE = 110;
+
+    static constexpr int BUTTON_FG_RED = 255;
+    static constexpr int BUTTON_FG_GREEN = 255;
+    static constexpr int BUTTON_FG_BLUE = 255;
     
     //font settings
     static constexpr int FONT_SIZE = 14;
@@ -76,4 +80,5 @@ public:
     static wxColour GetBackgroundColour();
     static wxColour GetTextColour();
     static wxColour GetButtonBackgroundColour();
+    static wxColour GetButtonForegroundColour();
 };

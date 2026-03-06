@@ -9,6 +9,9 @@
 
 #include "ThemeSettings.h"
 
+//set dark or light theme according to config
+
+
 wxColour ThemeSettings::GetBackgroundColour()
 {
     return wxColour(BG_RED, BG_GREEN, BG_BLUE);
@@ -22,6 +25,11 @@ wxColour ThemeSettings::GetTextColour()
 wxColour ThemeSettings::GetButtonBackgroundColour()
 {
     return wxColour(BUTTON_BG_RED, BUTTON_BG_GREEN, BUTTON_BG_BLUE);
+}
+
+wxColour ThemeSettings::GetButtonForegroundColour()
+{
+    return wxColour(BUTTON_FG_RED, BUTTON_FG_GREEN, BUTTON_FG_BLUE);
 }
 
 void ThemeSettings::ApplyDarkTheme(wxStyledTextCtrl* textCtrl)
