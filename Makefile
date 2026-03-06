@@ -31,7 +31,7 @@ Preferences/Preferences.cpp
 WX_CONFIG = wx-config
 
 WX_CXXFLAGS = $(shell $(WX_CONFIG) --cxxflags)
-WX_LIBS = $(shell $(WX_CONFIG) --libs std,stc --static)
+WX_LIBS = $(shell $(WX_CONFIG) --libs std,stc)
 
 .PHONY: all clean
 
