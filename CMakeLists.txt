@@ -29,6 +29,8 @@ set(SOURCES
     SyntaxHighlighter/SyntaxHighlightAssembly.cpp
     SyntaxHighlighter/SyntaxHighlightSQL.cpp
     SyntaxHighlighter/Text.cpp
+
+    Preferences/Preferences.cpp
 )
 
 if(WIN32)
