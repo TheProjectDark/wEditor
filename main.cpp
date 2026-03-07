@@ -188,16 +188,16 @@ bool App::OnInit() {
     return true;
 }
 
-//restore last opened file on startup
+//restore last opened file on startup if enabled in preferences
 void MainFrame::RestoreLastFile()
 {
     wxConfigBase* config = wxConfig::Get();
-
-    wxString lastFile = config->Read("Session/LastFile", "");
-
-    if (!lastFile.IsEmpty() && wxFileExists(lastFile))
-    {
-        OpenFile(lastFile);
+    wxString openLastFileValue = config->Read("Preferences/OpenLastFile", "On");
+    if (openLastFileValue == "On") {
+        wxString lastFilePath = config->Read("Session/LastFile", "");
+        if (!lastFilePath.IsEmpty()) {
+            OpenFile(lastFilePath);
+        }
     }
 }
 
@@ -481,7 +481,7 @@ void MainFrame::OnPreferences(wxCommandEvent& event)
 void MainFrame::OnAbout(wxCommandEvent& event)
 {
     wxMessageBox("wEditor is simple cross-platform and open-souce text editor written on C++ using wxWidgets library.",
-                 "wEditor beta v2.0", wxOK | wxICON_INFORMATION);
+                 "wEditor beta v2.1", wxOK | wxICON_INFORMATION);
 }
 
 //close app
