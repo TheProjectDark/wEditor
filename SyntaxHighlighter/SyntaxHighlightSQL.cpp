@@ -23,17 +23,40 @@ void SyntaxHighlightSQL::ApplyHighlight(wxStyledTextCtrl* textCtrl)
 
     std::string styles(length, STYLE_DEFAULT);
 
+    //mark strings and comments (highest priority - don't highlight inside them)
+    //strings
+    size_t strStartPos = text.find("'");
+    while (strStartPos != wxString::npos) {
+        size_t endPos = text.find("'", strStartPos + 1);
+        if (endPos != wxString::npos) {
+            for (size_t i = strStartPos; i <= endPos; i++) {
+                styles[i] = STYLE_STRING;
+            }
+            highlightRange.Mark(strStartPos, endPos + 1);
+            strStartPos = text.find("'", endPos + 1);
+        } else {
+            break;
+        }
+    }
+
     //comments--
     size_t pos = text.find("--");
     while (pos != wxString::npos) {
         if (!highlightRange.IsOccupied(pos, pos + 2)) {
             size_t endPos = text.find("\n", pos);
-            if (endPos == wxString::npos) endPos = text.length();
-            for (size_t i = pos; i < endPos; i++) {
-                styles[i] = STYLE_COMMENT;
+            if (endPos != wxString::npos) {
+                for (size_t i = pos; i < endPos; i++) {
+                    styles[i] = STYLE_COMMENT;
+                }
+                highlightRange.Mark(pos, endPos);
+                pos = text.find("--", endPos);
+            } else {
+                for (size_t i = pos; i < length; i++) {
+                    styles[i] = STYLE_COMMENT;
+                }
+                highlightRange.Mark(pos, length);
+                break;
             }
-            highlightRange.Mark(pos, endPos);
-            pos = text.find("--", endPos);
         } else {
             pos = text.find("--", pos + 2);
         }
@@ -83,27 +106,28 @@ void SyntaxHighlightSQL::ApplyHighlight(wxStyledTextCtrl* textCtrl)
 
     //keywords
     std::vector<wxString> keywords = {
-        "SELECT", "FROM", "WHERE", "INSERT", "UPDATE", "DELETE", "JOIN", "INNER", "LEFT", "RIGHT",
-        "ON", "CREATE", "TABLE", "ALTER", "DROP", "INDEX", "VIEW", "TRIGGER", "PROCEDURE",
-        "FUNCTION", "UNION", "GROUP", "ORDER", "BY", "HAVING", "DISTINCT", "AS", "AND", "OR",
-        "NOT", "IN", "IS", "NULL", "LIKE", "BETWEEN", "EXISTS",
-        "select", "from", "where", "insert", "update", "delete", "join", "inner", "left", "right",
-        "on", "create", "table", "alter", "drop", "index", "view", "trigger", "procedure",
-        "function", "union", "group", "order", "by", "having", "distinct", "as", "and", "or",
-        "not", "in", "is", "null", "like", "between", "exists"
+        "SELECT", "FROM", "WHERE", "INSERT", "UPDATE", "DELETE", "JOIN", "INNER", "LEFT", "RIGHT", "ON", "CREATE", "TABLE", "ALTER", "DROP", "INDEX", "VIEW", "TRIGGER", "PROCEDURE", "FUNCTION", "UNION", "GROUP BY", "ORDER BY", "HAVING", "DISTINCT", "AS", "AND", "OR", "NOT", "IN", "IS", "NULL", "LIKE", "BETWEEN", "EXISTS", "CONSTRAINT",
+        "select", "from", "where", "insert", "update", "delete", "join", "inner", "left", "right", "on", "create", "table", "alter", "drop", "index", "view", "trigger", "procedure", "function", "union", "group by", "order by", "having", "distinct", "as", "and", "or", "not", "in", "is", "null", "like", "between", "exists", "constraint"
     };
     for (const auto& keyword : keywords) {
-        pos = text.find(keyword);
-        while (pos != wxString::npos) {
-            if (!highlightRange.IsOccupied(pos, pos + keyword.length())) {
-                for (size_t i = pos; i < pos + keyword.length(); i++) {
-                    styles[i] = STYLE_KEYWORD;
-                }
-                highlightRange.Mark(pos, pos + keyword.length());
+    pos = text.find(keyword);
+    while (pos != wxString::npos) {
+
+        bool validMatch = true;
+
+        if (pos > 0 && wxIsalnum(text[pos - 1])) validMatch = false;
+        if (pos + keyword.length() < text.length() && wxIsalnum(text[pos + keyword.length()])) validMatch = false;
+
+        if (validMatch) {
+            for (size_t i = pos; i < pos + keyword.length(); i++) {
+                styles[i] = STYLE_KEYWORD;
             }
-            pos = text.find(keyword, pos + 1);
+            highlightRange.Mark(pos, pos + keyword.length());
         }
+
+        pos = text.find(keyword, pos + keyword.length());
     }
+}
 
     //data types
     std::vector<wxString> dataTypes = {

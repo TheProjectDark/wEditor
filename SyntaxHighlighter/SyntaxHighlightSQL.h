@@ -11,6 +11,7 @@
 #include <wx/wx.h>
 #include <wx/stc/stc.h>
 #include "SyntaxHighlighter.h"
+#include "../Functions/ThemeSettings.h"
 
 class SyntaxHighlightSQL : public SyntaxHighlighter {
     void ApplyHighlight(wxStyledTextCtrl* textCtrl) override;
