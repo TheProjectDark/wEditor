@@ -23,8 +23,39 @@ void SyntaxHighlightPython::ApplyHighlight(wxStyledTextCtrl* textCtrl)
 
     std::string styles(length, STYLE_DEFAULT);
 
+    //highlightign import as preprocessor for simplicity
+    size_t pos = text.find("import");
+    while (pos != wxString::npos) {
+        if (!highlightRange.IsOccupied(pos, pos + 6)) {
+            for (size_t i = pos; i < pos + 6; i++) {
+                styles[i] = STYLE_PREPROCESSOR;
+            }
+            highlightRange.Mark(pos, pos + 6);
+        }
+        pos = text.find("import", pos + 1);
+    }
+    //highlighting import path as string for simplicity
+    pos = text.find("import");
+    while (pos != wxString::npos) {
+        size_t startPos = text.find(" ", pos);
+        if (startPos != wxString::npos) {
+            startPos++;
+            //python dont require ; at end of import, so we look for newline instead
+            size_t endPos = text.find("\n", startPos);
+            if (endPos != wxString::npos) {
+                for (size_t i = startPos; i < endPos; i++) {
+                    styles[i] = STYLE_STRING;
+                }
+                highlightRange.Mark(startPos, endPos);
+            }
+            pos = text.find("import", endPos);
+        } else {
+            break;
+        }
+    }
+
     //comments
-    size_t pos = text.find("#");
+    pos = text.find("#");
     while (pos != wxString::npos) {
         if (!highlightRange.IsOccupied(pos, pos + 1)) {
             size_t endPos = text.find("\n", pos);
@@ -64,7 +95,7 @@ void SyntaxHighlightPython::ApplyHighlight(wxStyledTextCtrl* textCtrl)
     //keywords
     std::vector<wxString> keywords = {
         "def", "class", "if", "elif", "else", "for", "while", "return", "try", "except",
-        "finally", "with", "pass", "break", "continue", "lambda", "import", "from", "as"
+        "finally", "with", "pass", "break", "continue", "lambda", "from", "as"
     };
     for (const auto& keyword : keywords) {
         pos = text.find(keyword);

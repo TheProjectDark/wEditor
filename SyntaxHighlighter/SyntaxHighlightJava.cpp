@@ -26,6 +26,37 @@ void SyntaxHighlightJava::ApplyHighlight(wxStyledTextCtrl* textCtrl)
         styles[i] = STYLE_DEFAULT;
     }
 
+    //highlightign import as preprocessor for simplicity
+    size_t pos = text.find("import");
+    while (pos != wxString::npos) {
+        if (!highlightRange.IsOccupied(pos, pos + 6)) {
+            for (size_t i = pos; i < pos + 6; i++) {
+                styles[i] = STYLE_PREPROCESSOR;
+            }
+            highlightRange.Mark(pos, pos + 6);
+        }
+        pos = text.find("import", pos + 1);
+    }
+    //highlighting import path as string for simplicity
+    pos = text.find("import");
+    while (pos != wxString::npos) {
+        size_t startPos = text.find(" ", pos);
+        if (startPos != wxString::npos) {
+            startPos++;
+            size_t endPos = text.find(";", startPos);
+            if (endPos != wxString::npos) {
+                for (size_t i = startPos; i < endPos; i++) {
+                    styles[i] = STYLE_STRING;
+                }
+                highlightRange.Mark(startPos, endPos);
+                pos = text.find("import", endPos);
+            } else {
+                break;
+            }
+        } else {            break;
+        }
+    }
+
     //comments
     std::vector<wxString> comments = {
         "//", "/*", "*/"
@@ -83,7 +114,7 @@ void SyntaxHighlightJava::ApplyHighlight(wxStyledTextCtrl* textCtrl)
     std::vector<wxString> keywords = {
         "public", "private", "protected", "static", "final", "if", "else", "switch", "case", 
         "for", "while", "do", "return", "new", "this", "super", "extends", "implements", 
-        "try", "catch", "finally", "throw", "throws", "import", "package", "class", "interface"
+        "try", "catch", "finally", "throw", "throws", "package", "class", "interface"
     };
     for (const auto& keyword : keywords)
     {

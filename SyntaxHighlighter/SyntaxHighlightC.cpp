@@ -23,6 +23,26 @@ void SyntaxHighlightC::ApplyHighlight(wxStyledTextCtrl* textCtrl)
 
     //create style array
     std::string styles(length, STYLE_DEFAULT);
+    
+    //highlighting text inside <> in #include directives as string inside ""
+    size_t pos = text.find("#include");
+    while (pos != wxString::npos) {
+        size_t startPos = text.find("<", pos);
+        if (startPos != wxString::npos) {
+            size_t endPos = text.find(">", startPos);
+            if (endPos != wxString::npos) {
+                for (size_t i = startPos; i <= endPos; i++) {
+                    styles[i] = STYLE_STRING;
+                }
+                highlightRange.Mark(startPos, endPos + 1);
+                pos = text.find("#include", endPos);
+            } else {
+                break;
+            }
+        } else {
+            break;
+        }
+    }
 
     //comments
     std::vector<wxString> comments = {
@@ -117,7 +137,7 @@ void SyntaxHighlightC::ApplyHighlight(wxStyledTextCtrl* textCtrl)
     std::vector<wxString> controlStatements = {
         "if", "while", "for", "switch", "catch"
     };
-    size_t pos = text.find("(");
+    pos = text.find("(");
     while (pos != wxString::npos) {
         if (!highlightRange.IsOccupied(pos, pos + 1)) {
             bool isControlStatement = false;
