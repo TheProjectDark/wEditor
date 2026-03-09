@@ -15,6 +15,12 @@
                 "reveal": "always",
                 "focus": false,
                 "panel": "shared"
+            },
+            "options": {
+                "env": {
+                    "CXX": "clang++",
+                    "WX_CONFIG": "wx-config"
+                }
             }
         },
         {

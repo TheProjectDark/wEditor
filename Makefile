@@ -15,8 +15,9 @@ CXXFLAGS = -std=c++20 -O2
 TARGET = wEditor
 
 SRC = \
-main.cpp \
+MainFrame.cpp \
 SyntaxHighlighter/SyntaxHighlightCPP.cpp \
+SyntaxHighlighter/SyntaxHighlightCSharp.cpp \
 SyntaxHighlighter/SyntaxHighlighter.cpp \
 SyntaxHighlighter/Text.cpp \
 SyntaxHighlighter/SyntaxHighlightC.cpp \

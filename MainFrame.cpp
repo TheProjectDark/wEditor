@@ -233,6 +233,8 @@ wxString MainFrame::GetLanguageForExtension(const wxString& filename) const {
     wxString ext = filename.AfterLast('.').Lower();
     if (ext == "cpp" || ext == "h" || ext == "hpp") {
         return "C++";
+    } else if (ext == "cs") {
+        return "C#";
     } else if (ext == "c") {
         return "C";
     } else if (ext == "java" || ext == "jav" || ext == "class") {

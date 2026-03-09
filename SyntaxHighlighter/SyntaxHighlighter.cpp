@@ -10,6 +10,7 @@
 #include "SyntaxHighlighter.h"
 #include "Text.h"
 #include "SyntaxHighlightCPP.h"
+#include "SyntaxHighlightCSharp.h"
 #include "SyntaxHighlightC.h"
 #include "SyntaxHighlightJava.h"
 #include "SyntaxHighlightPython.h"
@@ -22,6 +23,9 @@ SyntaxHighlighter* HighlighterFactory::CreateHighlighter(const wxString& languag
     }
     else if (language == "C++") {
         return new SyntaxHighlightCPP();
+    }
+    else if (language == "C#") {
+        return new SyntaxHighlightCSharp();
     }
     else if (language == "C") {
         return new SyntaxHighlightC();
@@ -38,13 +42,14 @@ SyntaxHighlighter* HighlighterFactory::CreateHighlighter(const wxString& languag
     else if (language == "SQL Script") {
         return new SyntaxHighlightSQL();
     }
-    return new SyntaxHighlightCPP();
+    return new Text();
 }
 
 std::vector<wxString> HighlighterFactory::GetAvailableLanguages() {
     return {
         "Text",
         "C++",
+        "C#",
         "C",
         "Java",
         "Python",

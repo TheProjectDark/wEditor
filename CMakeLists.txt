@@ -16,13 +16,14 @@ include(${wxWidgets_USE_FILE})
 
 #source
 set(SOURCES
-    main.cpp
+    MainFrame.cpp
 
     Functions/DragNDrop.cpp
     Functions/ThemeSettings.cpp
 
     SyntaxHighlighter/SyntaxHighlighter.cpp
     SyntaxHighlighter/SyntaxHighlightCPP.cpp
+    SyntaxHighlighter/SyntaxHighlightCSharp.cpp
     SyntaxHighlighter/SyntaxHighlightC.cpp
     SyntaxHighlighter/SyntaxHighlightJava.cpp
     SyntaxHighlighter/SyntaxHighlightPython.cpp
