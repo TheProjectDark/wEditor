@@ -8,339 +8,229 @@
  */
 
 #include "SyntaxHighlightCPP.h"
+#include <unordered_set>
+#include <cctype>
 
+static const std::unordered_set<std::string> s_keywords = {
+    "return","if","else","while","for","switch","case","break","continue",
+    "override","virtual","const","static","new","delete","this",
+    "public","private","protected","namespace","class","struct","enum",
+    "typedef","using","template","typename","inline","extern","volatile",
+    "do","goto","sizeof","alignof","decltype","auto","register","explicit"
+};
+
+static const std::unordered_set<std::string> s_types = {
+    "int","float","double","char","void","bool","long","short",
+    "unsigned","signed","wchar_t","size_t","ptrdiff_t","nullptr_t",
+    "string","vector","map","unordered_map","set","pair","tuple",
+    "unique_ptr","shared_ptr","weak_ptr","optional","variant","any"
+};
+
+static const std::unordered_set<std::string> s_stdFuncs = {
+    "printf","scanf","cout","cin","endl","cerr","clog",
+    "strlen","strcmp","strcpy","strcat","memset","memcpy",
+    "malloc","calloc","realloc","free","assert","abort","exit",
+    "std::cout","std::cin","std::cerr","std::endl", "std::vector"
+};
+static const std::unordered_set<std::string> s_literals = {
+    "true","false","NULL","nullptr","this"
+};
+
+//helper functions for tokenization
+
+static bool IsIdentChar(char c)  { return std::isalnum((unsigned char)c) || c == '_'; }
+static bool IsIdentStart(char c) { return std::isalpha((unsigned char)c) || c == '_'; }
+
+//tokenize and apply styles
 void SyntaxHighlightCPP::ApplyHighlight(wxStyledTextCtrl* textCtrl)
 {
-    textCtrl->ClearDocumentStyle(); //fix
-    textCtrl->SetLexer(wxSTC_LEX_NULL); //fix
-    wxString text = textCtrl->GetValue();
-    int length = text.length();
-    
-    //skip highlighting for empty text
-    if (length == 0) return;
+    textCtrl->ClearDocumentStyle();
+    textCtrl->SetLexer(wxSTC_LEX_NULL);
 
-    highlightRange.occupiedRanges.clear();
+    const wxString wxText = textCtrl->GetValue();
+    if (wxText.empty()) return;
 
-    //create style array
-    std::string styles(length, STYLE_DEFAULT);
+    //work with std::string for easier processing
+    const std::string text = wxText.ToStdString();
+    const int len = static_cast<int>(text.size());
 
-    //highlighting text inside <> in #include directives as string inside ""
-    size_t pos = text.find("#include");
-    while (pos != wxString::npos) {
-        size_t startPos = text.find("<", pos);
-        if (startPos != wxString::npos) {
-            size_t endPos = text.find(">", startPos);
-            if (endPos != wxString::npos) {
-                for (size_t i = startPos; i <= endPos; i++) {
-                    styles[i] = STYLE_STRING;
-                }
-                highlightRange.Mark(startPos, endPos + 1);
-                pos = text.find("#include", endPos);
-            } else {
-                break;
-            }
-        } else {
-            break;
-        }
-    }
+    std::string styles(len, STYLE_DEFAULT);
 
-    //comments
-    std::vector<wxString> comments = {
-        "//", "/*", "*/"
+    auto setStyle = [&](int from, int to, char style) {
+        for (int i = from; i < to && i < len; ++i)
+            styles[i] = style;
     };
-    for (const auto& comment : comments)
+
+    int i = 0;
+    while (i < len)
     {
-        size_t pos = text.find(comment);
-        while (pos != wxString::npos) {
-            size_t endPos;
-            if (comment == "//") {
-                endPos = text.find("\n", pos);
-                if (endPos == wxString::npos) endPos = text.length();
-            } else if (comment == "/*") {
-                endPos = text.find("*/", pos);
-                if (endPos != wxString::npos) endPos += 2;
-                else endPos = text.length();
-            } else {
-                pos = text.find(comment, pos + 1);
+        const char c  = text[i];
+        const char c1 = (i + 1 < len) ? text[i + 1] : '\0';
+
+        //one line comment //
+        if (c == '/' && c1 == '/')
+        {
+            int start = i;
+            while (i < len && text[i] != '\n') ++i;
+            setStyle(start, i, STYLE_COMMENT);
+            continue;
+        }
+
+        //multi line comments /* */
+        if (c == '/' && c1 == '*')
+        {
+            int start = i;
+            i += 2;
+            while (i < len - 1 && !(text[i] == '*' && text[i+1] == '/')) ++i;
+            i += 2; //skip */
+            setStyle(start, i, STYLE_COMMENT);
+            continue;
+        }
+
+        //string/char literals
+        if (c == '"' || c == '\'')
+        {
+            int start = i;
+            const char delim = c;
+            ++i;
+            while (i < len)
+            {
+                if (text[i] == '\\') { i += 2; continue; } // escape
+                if (text[i] == delim) { ++i; break; }
+                ++i;
+            }
+            setStyle(start, i, STYLE_STRING);
+            continue;
+        }
+
+        //preprocessor directives
+        if (c == '#')
+        {
+            int start = i;
+            //consume directive name
+            ++i;
+            while (i < len && std::isalpha((unsigned char)text[i])) ++i;
+            setStyle(start, i, STYLE_PREPROCESSOR);
+
+            //for #include, also style the path
+            const std::string directive = text.substr(start + 1, i - start - 1);
+            if (directive == "include")
+            {
+                //skip whitespace
+                while (i < len && text[i] == ' ') ++i;
+                if (i < len && text[i] == '<')
+                {
+                    int angleStart = i;
+                    while (i < len && text[i] != '>' && text[i] != '\n') ++i;
+                    if (i < len && text[i] == '>') ++i;
+                    setStyle(angleStart, i, STYLE_STRING);
+                }
+            }
+            continue;
+        }
+
+        //numeric literals (int, float.. whatever)
+        if (std::isdigit((unsigned char)c) ||
+            (c == '.' && std::isdigit((unsigned char)c1)))
+        {
+            int start = i;
+            if (c == '0' && (c1 == 'x' || c1 == 'X')) //hex
+            {
+                i += 2;
+                while (i < len && std::isxdigit((unsigned char)text[i])) ++i;
+            }
+            else if (c == '0' && (c1 == 'b' || c1 == 'B')) //binary
+            {
+                i += 2;
+                while (i < len && (text[i] == '0' || text[i] == '1')) ++i;
+            }
+            else
+            {
+                while (i < len && std::isdigit((unsigned char)text[i])) ++i;
+                if (i < len && text[i] == '.')
+                {
+                    ++i;
+                    while (i < len && std::isdigit((unsigned char)text[i])) ++i;
+                }
+                if (i < len && (text[i] == 'e' || text[i] == 'E'))
+                {
+                    ++i;
+                    if (i < len && (text[i] == '+' || text[i] == '-')) ++i;
+                    while (i < len && std::isdigit((unsigned char)text[i])) ++i;
+                }
+            }
+            //optional suffix: u, l, f, ul, ll …
+            while (i < len && (text[i] == 'u' || text[i] == 'U' ||
+                                text[i] == 'l' || text[i] == 'L' ||
+                                text[i] == 'f' || text[i] == 'F')) ++i;
+            setStyle(start, i, STYLE_NUMBER);
+            continue;
+        }
+
+        //identifiers and keywords
+        if (IsIdentStart(c))
+        {
+            int start = i;
+            while (i < len && IsIdentChar(text[i])) ++i;
+
+            //handle namespaces and class scopes (e.g. std::vector)
+            while (i + 1 < len && text[i] == ':' && text[i+1] == ':')
+            {
+                i += 2;
+                while (i < len && IsIdentChar(text[i])) ++i;
+            }
+
+            const std::string word = text.substr(start, i - start);
+
+            //check for function call (lookahead for '(')
+            int j = i;
+            while (j < len && (text[j] == ' ' || text[j] == '\t')) ++j;
+            if (j < len && text[j] == '(')
+            {
+                //still classify as keyword if it's a known type or keyword followed by '(' (e.g. "sizeof(")
+                if (s_keywords.count(word))
+                    setStyle(start, i, STYLE_KEYWORD);
+                else
+                    setStyle(start, i, STYLE_FUNCTION);
                 continue;
             }
-            for (size_t i = pos; i < endPos; i++) {
-                styles[i] = STYLE_COMMENT;
-            }
-            highlightRange.Mark(pos, endPos);
-            pos = text.find(comment, endPos);
-        }
-    }
 
-    //strings
-    std::vector<wxString> stringDelimiters = {
-        "\"", "'"
-    };
-    for (const auto& delimiter : stringDelimiters)
-    {
-        size_t pos = text.find(delimiter);
-        while (pos != wxString::npos) {
-            if (!highlightRange.IsOccupied(pos, pos + 1)) {
-                size_t endPos = text.find(delimiter, pos + 1);
-                if (endPos != wxString::npos) {
-                    for (size_t i = pos; i <= endPos; i++) {
-                        styles[i] = STYLE_STRING;
-                    }
-                    highlightRange.Mark(pos, endPos + 1);
-                    pos = text.find(delimiter, endPos + 1);
-                } else {
-                    break;
-                }
-            } else {
-                pos = text.find(delimiter, pos + 1);
+            //classify as keyword, type, function or literal
+            if (s_keywords.count(word))        setStyle(start, i, STYLE_KEYWORD);
+            else if (s_types.count(word))       setStyle(start, i, STYLE_KEYWORD);
+            else if (s_stdFuncs.count(word))    setStyle(start, i, STYLE_FUNCTION);
+            else if (s_literals.count(word))    setStyle(start, i, STYLE_NUMBER);
+            //else: STYLE_DEFAULT (normal identifier)
+            continue;
+        }
+
+        //multi-char operators
+        if (i + 1 < len)
+        {
+            const std::string op2 = text.substr(i, 2);
+            static const std::unordered_set<std::string> s_ops2 = {
+                "==","!=","<=",">=","&&","||","++","--","->",
+                "+=","-=","*=","/=","%=","&=","|=","^=","<<",">>"
+            };
+            if (s_ops2.count(op2))
+            {
+                setStyle(i, i + 2, STYLE_OPERATOR);
+                i += 2;
+                continue;
             }
         }
-    }
 
-    //preprocessor directives
-    std::vector<wxString> preprocessorDirectives = {
-        "#include", "#define", "#ifdef", "#ifndef", "#endif", "#pragma"
-    };
-    for (const auto& directive : preprocessorDirectives)
-    {
-        size_t pos = text.find(directive);
-        while (pos != wxString::npos) {
-            if (!highlightRange.IsOccupied(pos, pos + directive.length())) {
-                for (size_t i = pos; i < pos + directive.length(); i++) {
-                    styles[i] = STYLE_PREPROCESSOR;
-                }
-                highlightRange.Mark(pos, pos + directive.length());
-            }
-            pos = text.find(directive, pos + 1);
+        //single-char operators and symbols
+        static const std::string s_singles = "+-*/%=<>!&|^~?:;,.(){}[]";
+        if (s_singles.find(c) != std::string::npos)
+        {
+            setStyle(i, i + 1, STYLE_OPERATOR);
         }
+
+        ++i;
     }
 
-    //namespaces
-    std::vector<wxString> namespaces = {
-        "std", "namespace"
-    };
-    for (const auto& ns : namespaces)
-    {
-        size_t pos = text.find(ns);
-        while (pos != wxString::npos) {
-            if (!highlightRange.IsOccupied(pos, pos + ns.length())) {
-                for (size_t i = pos; i < pos + ns.length(); i++) {
-                    styles[i] = STYLE_NAMESPACE;
-                }
-                highlightRange.Mark(pos, pos + ns.length());
-            }
-            pos = text.find(ns, pos + 1);
-        }
-    }
-
-    //function highlighting
-    std::vector<wxString> controlStatements = {
-        "if", "else if", "while", "for", "switch", "catch"
-    };
-    pos = text.find("(");
-    while (pos != wxString::npos) {
-        if (!highlightRange.IsOccupied(pos, pos + 1)) {
-            bool isControlStatement = false;
-            for (const auto& stmt : controlStatements) {
-                size_t checkPos = pos;
-                while (checkPos > 0 && (text[checkPos - 1] == ' ' || text[checkPos - 1] == '\t')) {
-                    checkPos--;
-                }
-                if (checkPos >= stmt.length() && 
-                    text.substr(checkPos - stmt.length(), stmt.length()) == stmt &&
-                    (checkPos == stmt.length() || !isalnum(text[checkPos - stmt.length() - 1]))) {
-                    isControlStatement = true;
-                    break;
-                }
-            }
-            
-            if (!isControlStatement) {
-                size_t nameEnd = pos;
-                size_t nameStart = pos;
-                
-                while (nameStart > 0) {
-                    char ch = text[nameStart - 1];
-                    if (isalnum(ch) || ch == '_' || ch == ':') {
-                        nameStart--;
-                    } else {
-                        break;
-                    }
-                }
-                
-                if (nameStart < nameEnd) {
-                    for (size_t i = nameStart; i < pos; i++) {
-                        styles[i] = STYLE_FUNCTION;
-                    }
-                    highlightRange.Mark(nameStart, pos);
-                }
-            }
-        }
-        pos = text.find("(", pos + 1);
-    }
-
-    //types
-    std::vector<wxString> types = {
-        "int", "float", "double", "char", "void", "bool", "long", "short", "unsigned", "signed", "std::string", "std::vector", "std::map", "string", "class"
-    };
-    for (const auto& type : types)
-    {
-        size_t pos = text.find(type);
-        while (pos != wxString::npos) {
-            if (!highlightRange.IsOccupied(pos, pos + type.length())) {
-                for (size_t i = pos; i < pos + type.length(); i++) {
-                    styles[i] = STYLE_KEYWORD;
-                }
-                highlightRange.Mark(pos, pos + type.length());
-            }
-            pos = text.find(type, pos + 1);
-        }   
-    }
-
-    //standard library functions
-    std::vector<wxString> standardLibraryFunctions = {
-        "printf", "scanf", "cout", "cin", "endl", "std::cout", "std::cin"
-    };
-    for (const auto& func : standardLibraryFunctions)
-    {
-        size_t pos = text.find(func);
-        while (pos != wxString::npos) {
-            if (!highlightRange.IsOccupied(pos, pos + func.length())) {
-                for (size_t i = pos; i < pos + func.length(); i++) {
-                    styles[i] = STYLE_FUNCTION;
-                }
-                highlightRange.Mark(pos, pos + func.length());
-            }
-            pos = text.find(func, pos + 1);
-        }
-    }
-
-    //keywords
-    std::vector<wxString> keywords = {
-        "return", "if", "else", "while", "override", "virtual", "const", "static", "new", "delete", "this"
-    };
-    for (const auto& word : keywords)
-    {
-        size_t pos = text.find(word);
-        while (pos != wxString::npos) {
-            if (!highlightRange.IsOccupied(pos, pos + word.length())) {
-                for (size_t i = pos; i < pos + word.length(); i++) {
-                    styles[i] = STYLE_KEYWORD;
-                }
-                highlightRange.Mark(pos, pos + word.length());
-            }
-            pos = text.find(word, pos + 1);
-        }
-    }
-
-    //control structures
-    std::vector<wxString> controlStructures = {
-        "for", "switch", "case", "break", "continue"
-    };
-    for (const auto& cs : controlStructures)
-    {
-        size_t pos = text.find(cs);
-        while (pos != wxString::npos) {
-            if (!highlightRange.IsOccupied(pos, pos + cs.length())) {
-                for (size_t i = pos; i < pos + cs.length(); i++) {
-                    styles[i] = STYLE_KEYWORD;
-                }
-                highlightRange.Mark(pos, pos + cs.length());
-            }
-            pos = text.find(cs, pos + 1);
-        }
-    }
-
-    //access modifiers
-    std::vector<wxString> accessModifiers = {
-        "public", "private", "protected"
-    };
-    for (const auto& modifier : accessModifiers)
-    {
-        size_t pos = text.find(modifier);
-        while (pos != wxString::npos) {
-            if (!highlightRange.IsOccupied(pos, pos + modifier.length())) {
-                for (size_t i = pos; i < pos + modifier.length(); i++) {
-                    styles[i] = STYLE_KEYWORD;
-                }
-                highlightRange.Mark(pos, pos + modifier.length());
-            }
-            pos = text.find(modifier, pos + 1);
-        }
-    }
-
-    //literals
-    std::vector<wxString> literals = {
-        "true", "false", "NULL"
-    }; 
-    for (const auto& literal : literals)
-    {
-        size_t pos = text.find(literal);
-        while (pos != wxString::npos) {
-            if (!highlightRange.IsOccupied(pos, pos + literal.length())) {
-                for (size_t i = pos; i < pos + literal.length(); i++) {
-                    styles[i] = STYLE_NUMBER;
-                }
-                highlightRange.Mark(pos, pos + literal.length());
-            }
-            pos = text.find(literal, pos + 1);
-        }
-    }
-
-    //multi char operators
-    std::vector<wxString> operators_multi = {
-        "==", "!=", "<=", ">=", "&&", "||", "++", "--"
-    };
-    for (const auto& op : operators_multi)
-    {
-        size_t pos = text.find(op);
-        while (pos != wxString::npos) {
-            if (!highlightRange.IsOccupied(pos, pos + op.length())) {
-                for (size_t i = pos; i < pos + op.length(); i++) {
-                    styles[i] = STYLE_OPERATOR;
-                }
-                highlightRange.Mark(pos, pos + op.length());
-            }
-            pos = text.find(op, pos + 1);
-        }
-    }
-
-    //single char operators
-    std::vector<wxString> operators_single = {
-        "+", "-", "*", "/", "=", "<", ">"
-    };
-    for (const auto& op : operators_single)
-    {
-        size_t pos = text.find(op);
-        while (pos != wxString::npos) {
-            if (!highlightRange.IsOccupied(pos, pos + op.length())) {
-                for (size_t i = pos; i < pos + op.length(); i++) {
-                    styles[i] = STYLE_OPERATOR;
-                }
-                highlightRange.Mark(pos, pos + op.length());
-            }
-            pos = text.find(op, pos + 1);
-        }
-    }
-
-    //symbols
-    std::vector<wxString> symbols = {
-        "{", "}", "(", ")", "[", "]", ";", ",", "."
-    };
-    for (const auto& symbol : symbols)
-    {
-        size_t pos = text.find(symbol);
-        while (pos != wxString::npos) {
-            if (!highlightRange.IsOccupied(pos, pos + symbol.length())) {
-                for (size_t i = pos; i < pos + symbol.length(); i++) {
-                    styles[i] = STYLE_OPERATOR;
-                }
-                highlightRange.Mark(pos, pos + symbol.length());
-            }
-            pos = text.find(symbol, pos + 1);
-        }
-    }
-    
-    //apply all styles at once
+    //apply styles at once
     textCtrl->StartStyling(0);
-    textCtrl->SetStyleBytes(length, styles.data());
+    textCtrl->SetStyleBytes(len, styles.data());
 }
