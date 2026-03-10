@@ -29,14 +29,14 @@ class MainFrame : public wxFrame
 
         //wildcard
         wxString wildcard =
+        "All files (*.*)|*.*|"
         "Text files (*.txt)|*.txt|"
         "C++ files (*.cpp;*.hpp;*.h)|*.cpp;*.hpp;*.h|"
         "C files (*.c;*.h)|*.c;*.h|"
         "Java files (*.java)|*.java|"
         "Python files (*.py)|*.py|"
         "Assembly files (*.asm;*.s)|*.asm;*.s|"
-        "SQL files (*.sql)|*.sql|"
-        "All files (*.*)|*.*";
+        "SQL files (*.sql)|*.sql";
     private:
         wxStyledTextCtrl* textCtrl;
         wxChoice* languageChoice;
