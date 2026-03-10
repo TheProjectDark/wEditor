@@ -37,8 +37,7 @@ static const std::unordered_set<std::string> s_literals = {
 };
 
 //helper functions for tokenization
-
-static bool IsIdentChar(char c)  { return std::isalnum((unsigned char)c) || c == '_'; }
+static bool IsIdentChar(char c) { return std::isalnum((unsigned char)c) || c == '_'; }
 static bool IsIdentStart(char c) { return std::isalpha((unsigned char)c) || c == '_'; }
 
 //tokenize and apply styles
