@@ -10,7 +10,7 @@ ifeq ($(UNAME_S),Darwin)
 endif
 
 #Compiler flags
-CXXFLAGS = -std=c++20 -O2
+CXXFLAGS = -std=c++23 -O2
 
 TARGET = wEditor
 
