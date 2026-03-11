@@ -489,6 +489,10 @@ void MainFrame::OnAbout(wxCommandEvent& event)
 //close app
 void MainFrame::OnExit(wxCommandEvent& event)
 {
+    //save last opened file path to config
+    wxConfigBase::Get()->Write("Session/LastFile", currentFilePath);
+    wxConfigBase::Get()->Flush();
+
     //auto save current file on exit if enabled in preferences
     wxConfigBase* config = wxConfig::Get();
     wxString autosaveValue = config->Read("Preferences/Autosave", "On");
