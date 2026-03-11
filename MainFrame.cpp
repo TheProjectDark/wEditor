@@ -61,7 +61,7 @@ MainFrame::MainFrame(const wxString& title)
 
     textCtrl = new wxStyledTextCtrl(panel, wxID_ANY);
     ThemeSettings::ApplyDarkTheme(textCtrl);
-
+    //setting icon for Microsoft Windows
     #ifdef __WXMSW__
     SetIcon(wxIcon("app.ico", wxBITMAP_TYPE_ICO));
     #endif
