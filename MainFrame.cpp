@@ -193,6 +193,31 @@ bool App::OnInit() {
     return true;
 }
 
+//load file function to prevent code duplication in open file and restore last file functions
+void MainFrame::LoadFile(const wxString& path) {
+    wxFile file;
+    if (!file.Open(path))
+    {
+        wxMessageBox(wxString::Format("Failed to open file: %s", path), "Error");
+        return;
+    }
+
+    wxString text;
+    file.ReadAll(&text);
+    file.Close();
+
+    textCtrl->SetValue(text);
+    textCtrl->Refresh();
+    currentFilePath = path;
+    //applying syntax highlighting according to file type
+    languageChoice->SetStringSelection(GetLanguageForExtension(path));
+
+    delete currentHighlighter;
+    currentLanguage = languageChoice->GetStringSelection();
+    currentHighlighter = HighlighterFactory::CreateHighlighter(currentLanguage);
+    HighlightSyntax();
+}
+
 //restore last opened file on startup if enabled in preferences
 void MainFrame::RestoreLastFile()
 {
@@ -385,29 +410,7 @@ void MainFrame::OpenFile(const wxString& path)
         wxMessageBox("wEditor does not support this file format. Please select a text or code file.", "Unsupported Format", wxOK | wxICON_WARNING);
         return;
     }
-    wxFile file;
-    if (!file.Open(fullPath))
-    {
-        wxMessageBox(wxString::Format("Failed to open file: %s", fullPath), "Error");
-        return;
-    }
-
-    wxString text;
-    file.ReadAll(&text);
-    file.Close();
-
-    textCtrl->SetValue(text);
-    textCtrl->Refresh();
-    currentFilePath = fullPath;
-    //applying syntax highlighting according to file type
-    languageChoice->SetStringSelection(GetLanguageForExtension(fullPath));
-
-    delete currentHighlighter;
-    currentLanguage = languageChoice->GetStringSelection();
-    currentHighlighter = HighlighterFactory::CreateHighlighter(currentLanguage);
-    wxConfigBase::Get()->Write("Session/LastFile", fullPath);
-    wxConfigBase::Get()->Flush();
-    HighlightSyntax();
+    LoadFile(fullPath);
 }
 
 //open file dialog
@@ -433,27 +436,7 @@ void MainFrame::OnOpen(wxCommandEvent& event)
         return;
     }
 
-    wxFile file;
-    if (!file.Open(path))
-    {
-        wxMessageBox("Failed to open file");
-        return;
-    }
-
-    wxString text;
-    file.ReadAll(&text);
-    file.Close();
-
-    textCtrl->SetValue(text);
-    textCtrl->Refresh();
-    currentFilePath = path;
-    //applying syntax highlighting according to file type
-    languageChoice->SetStringSelection(GetLanguageForExtension(path));
-
-    delete currentHighlighter;
-    currentLanguage = languageChoice->GetStringSelection();
-    currentHighlighter = HighlighterFactory::CreateHighlighter(currentLanguage);
-    HighlightSyntax();
+    LoadFile(path);
 }
 
 //undo and redo functions
@@ -478,26 +461,7 @@ void MainFrame::OnDropFiles(const wxArrayString& filenames)
             wxMessageBox("wEditor does not support this file format. Please drop a text or code file.", "Unsupported Format", wxOK | wxICON_WARNING);
             return;
         }
-        wxFile file;
-        if (!file.Open(path))
-        {
-            wxMessageBox("Failed to open file");
-            return;
-        }
-
-        wxString text;
-        file.ReadAll(&text);
-        file.Close();
-
-        textCtrl->SetValue(text);
-        textCtrl->Refresh();
-        //apply syntax highlight by file type
-        languageChoice->SetStringSelection(GetLanguageForExtension(path));
-
-        delete currentHighlighter;
-        currentLanguage = languageChoice->GetStringSelection();
-        currentHighlighter = HighlighterFactory::CreateHighlighter(currentLanguage);
-        HighlightSyntax();
+        LoadFile(path);
     }
 }
 

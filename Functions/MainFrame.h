@@ -22,6 +22,7 @@ class MainFrame : public wxFrame
         ~MainFrame();
         void OnDropFiles(const wxArrayString& filenames);
         void OpenFile(const wxString& path);
+        void LoadFile(const wxString& path);
         void RestoreLastFile();
 
         //debounce for highlight
