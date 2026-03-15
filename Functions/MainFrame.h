@@ -54,6 +54,7 @@ class MainFrame : public wxFrame
         void OnRedo(wxCommandEvent& event);
         void OnPreferences(wxCommandEvent& event);
         void OnText(wxCommandEvent& event);
+        void OnCharAdded(wxStyledTextEvent& event);
         void OnLanguageChange(wxCommandEvent& event);
         void HighlightSyntax();
         wxString GetLanguageForExtension(const wxString& filename) const;

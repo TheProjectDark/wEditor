@@ -65,6 +65,10 @@ MainFrame::MainFrame(const wxString& title)
     #ifdef __WXMSW__
     SetIcon(wxIcon("app.ico", wxBITMAP_TYPE_ICO));
     #endif
+    //set caret line to visible with a subtle background color
+    textCtrl->SetCaretLineBackground(wxColour(50, 50, 70));
+    textCtrl->SetCaretLineVisible(true);
+    textCtrl->SetIndentationGuides(true);
     
     wxButton* newFile = new wxButton(panel, wxID_ANY, "New file");
     wxButton* saveAs = new wxButton(panel, wxID_ANY, "Save as");
@@ -142,6 +146,7 @@ MainFrame::MainFrame(const wxString& title)
     textCtrl->SetIndent(4);
     textCtrl->SetTabIndents(true);
     textCtrl->SetBackSpaceUnIndents(true);
+    textCtrl->Bind(wxEVT_STC_CHARADDED, &MainFrame::OnCharAdded, this);
 
     //setup bindings
     newFile->Bind(wxEVT_BUTTON, &MainFrame::OnNewFile, this);
@@ -225,6 +230,31 @@ void MainFrame::OnLanguageChange(wxCommandEvent& event) {
 void MainFrame::HighlightSyntax() {
     if (currentHighlighter) {
         currentHighlighter->ApplyHighlight(textCtrl);
+    }
+}
+
+//auto indent on enter
+void MainFrame::OnCharAdded(wxStyledTextEvent& event)
+{
+    if (event.GetKey() == '\n')
+    {
+        int currentLine = textCtrl->GetCurrentLine();
+
+        if (currentLine > 0)
+        {
+            wxString prevLine = textCtrl->GetLine(currentLine - 1);
+
+            wxString indent;
+            for (wxChar c : prevLine)
+            {
+                if (c == ' ' || c == '\t')
+                    indent += c;
+                else
+                    break;
+            }
+
+            textCtrl->AddText(indent);
+        }
     }
 }
 
