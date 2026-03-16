@@ -26,7 +26,13 @@ static const std::unordered_set<std::string> s_keywords = {
     //expressions / operators
     "alignof", "decltype", "sizeof", "using",
     //misc
-    "this"
+    "this",
+    //c++11
+    "constexpr", "final", "noexcept", "static_assert", "thread_local",
+    //c++17
+    "if constexpr",
+    //c++20
+    "concept", "consteval", "constinit", "co_await", "co_return", "co_yield", "export", "import", "module", "requires"
 };
 
 static const std::unordered_set<std::string> s_types = {
@@ -35,11 +41,31 @@ static const std::unordered_set<std::string> s_types = {
     "signed", "unsigned", "void", "wchar_t",
     //platform types
     "nullptr_t", "ptrdiff_t", "size_t",
+    //c++11 — fixed width integers
+    "int8_t", "int16_t", "int32_t", "int64_t",
+    "uint8_t", "uint16_t", "uint32_t", "uint64_t",
+    "int_fast8_t", "int_fast16_t", "int_fast32_t", "int_fast64_t",
+    "int_least8_t", "int_least16_t", "int_least32_t", "int_least64_t",
+    "intmax_t", "intptr_t", "uintmax_t", "uintptr_t",
+    //c++11 — char types
+    "char16_t", "char32_t",
+    //c++20 — char types
+    "char8_t",
     //strings and containers
-    "map", "pair", "set", "string", "tuple",
-    "unordered_map", "vector",
-    //smart pointers and utilities
-    "any", "optional", "shared_ptr", "unique_ptr", "variant", "weak_ptr"
+    "map", "pair", "set", "string", "tuple", "unordered_map", "vector",
+    //c++11 — containers and utilities
+    "array", "forward_list", "unordered_set", "unordered_multimap", "unordered_multiset",
+    "initializer_list", "nullptr_t", "type_index",
+    //c++11 — smart pointers
+    "shared_ptr", "unique_ptr", "weak_ptr",
+    //c++17 — utilities
+    "any", "optional", "string_view", "variant",
+    //c++17 — filesystem
+    "path",
+    //c++20 — utilities
+    "span", "source_location",
+    //c++23 — utilities
+    "expected", "stacktrace"
 };
 
 static const std::unordered_set<std::string> s_stdFuncs = {
@@ -55,11 +81,55 @@ static const std::unordered_set<std::string> s_stdFuncs = {
     //program control
     "abort", "assert", "exit",
     //c i/o
-    "printf", "scanf"
+    "printf", "scanf",
+    //c++11 — memory
+    "std::make_shared", "std::make_unique",
+    "std::move", "std::forward", "std::swap",
+    //c++11 — algorithms
+    "std::sort", "std::find", "std::find_if", "std::count", "std::count_if",
+    "std::copy", "std::transform", "std::accumulate",
+    "std::for_each", "std::remove", "std::remove_if",
+    "std::lower_bound", "std::upper_bound", "std::binary_search",
+    "std::min", "std::max", "std::min_element", "std::max_element",
+    "std::reverse", "std::fill", "std::fill_n",
+    //c++11 — threading
+    "std::thread", "std::mutex", "std::lock_guard",
+    "std::unique_lock", "std::condition_variable",
+    "std::async", "std::future", "std::promise",
+    //c++11 — utilities
+    "std::bind", "std::function", "std::ref", "std::cref",
+    "std::pair", "std::make_pair", "std::tuple", "std::make_tuple", "std::tie",
+    "std::to_string", "std::stoi", "std::stof", "std::stod", "std::stol",
+    //c++11 — type traits
+    "std::is_same", "std::is_base_of", "std::is_convertible",
+    "std::enable_if", "std::decay", "std::remove_reference",
+    //c++14 — utilities
+    "std::make_unique",
+    //c++17 — utilities
+    "std::optional", "std::any", "std::variant",
+    "std::visit", "std::holds_alternative", "std::get_if",
+    "std::string_view",
+    "std::apply", "std::invoke",
+    "std::clamp",
+    //c++17 — filesystem
+    "std::filesystem::path", "std::filesystem::exists",
+    "std::filesystem::copy", "std::filesystem::remove",
+    "std::filesystem::create_directory",
+    //c++20 — ranges
+    "std::ranges::sort", "std::ranges::find", "std::ranges::for_each",
+    "std::ranges::copy", "std::ranges::transform", "std::ranges::filter",
+    //c++20 — utilities
+    "std::span", "std::bit_cast", "std::midpoint", "std::lerp",
+    "std::format", "std::source_location::current",
+    //c++23 — utilities
+    "std::expected", "std::print", "std::println"
 };
 
 static const std::unordered_set<std::string> s_literals = {
-    "NULL", "false", "nullptr", "this", "true"
+    //boolean / null
+    "NULL", "false", "nullptr", "true",
+    //c++11 — user-defined literal suffixes (as identifiers)
+    "this"
 };
 
 //helper functions for tokenization

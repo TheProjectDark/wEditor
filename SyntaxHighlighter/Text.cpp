@@ -26,5 +26,3 @@ void Text::ApplyHighlight(wxStyledTextCtrl* textCtrl) {
     textCtrl->SetStyleBytes(length, (char*)styles.c_str());
     highlightRange.Mark(0, text.length());
 }
-
-
