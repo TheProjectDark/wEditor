@@ -7,8 +7,6 @@
  * (at your option) any later version.
  */
 
-#include <wx/wx.h>
-#include <wx/config.h>
 #include "Preferences.h"
 
 //Preferences frame constructor

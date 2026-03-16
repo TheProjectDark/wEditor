@@ -9,6 +9,7 @@
 
 #pragma once
 #include <wx/wx.h>
+#include <wx/config.h>
 #include "../Functions/ThemeSettings.h"
 
 //Preferences frame class

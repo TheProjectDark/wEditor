@@ -10,9 +10,16 @@
 #pragma once
 #include <wx/wx.h>
 #include <wx/stc/stc.h>
+#include <wx/filedlg.h>
+#include <wx/file.h>
+#include <wx/config.h>
+#include "ThemeSettings.h"
 #include "../SyntaxHighlighter/SyntaxHighlighter.h"
 #include "DragNDrop.h"
 #include "../Preferences/Preferences.h"
+#ifdef __WXMSW__
+    #include <wx/icon.h>
+#endif
 
 //frame class and functions
 class MainFrame : public wxFrame

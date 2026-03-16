@@ -7,16 +7,7 @@
  * (at your option) any later version.
  */
 
-#include <wx/wx.h>
-#include <wx/stc/stc.h>
-#include <wx/filedlg.h>
-#include <wx/file.h>
-#include <wx/config.h>
 #include "Functions/MainFrame.h"
-#include "Functions/ThemeSettings.h"
-#ifdef __WXMSW__
-    #include <wx/icon.h>
-#endif
 
 //app class to launch this editor
 class App : public wxApp
