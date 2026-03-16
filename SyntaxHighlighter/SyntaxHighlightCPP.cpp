@@ -12,28 +12,54 @@
 #include <cctype>
 
 static const std::unordered_set<std::string> s_keywords = {
-    "return","if","else","while","for","switch","case","break","continue",
-    "override","virtual","const","static","new","delete","this",
-    "public","private","protected","namespace","class","struct","enum",
-    "typedef","using","template","typename","inline","extern","volatile",
-    "do","goto","sizeof","alignof","decltype","auto","register","explicit"
+    //access modifiers
+    "private", "protected", "public",
+    //type modifiers
+    "auto", "const", "explicit", "extern", "inline", "override",
+    "register", "static", "typedef", "typename", "virtual", "volatile",
+    //type declarations
+    "class", "enum", "namespace", "struct", "template",
+    //control flow
+    "break", "case", "continue", "do", "else", "for", "goto", "if", "return", "switch", "while",
+    //memory
+    "delete", "new",
+    //expressions / operators
+    "alignof", "decltype", "sizeof", "using",
+    //misc
+    "this"
 };
 
 static const std::unordered_set<std::string> s_types = {
-    "int","float","double","char","void","bool","long","short",
-    "unsigned","signed","wchar_t","size_t","ptrdiff_t","nullptr_t",
-    "string","vector","map","unordered_map","set","pair","tuple",
-    "unique_ptr","shared_ptr","weak_ptr","optional","variant","any"
+    //primitives
+    "bool", "char", "double", "float", "int", "long", "short",
+    "signed", "unsigned", "void", "wchar_t",
+    //platform types
+    "nullptr_t", "ptrdiff_t", "size_t",
+    //strings and containers
+    "map", "pair", "set", "string", "tuple",
+    "unordered_map", "vector",
+    //smart pointers and utilities
+    "any", "optional", "shared_ptr", "unique_ptr", "variant", "weak_ptr"
 };
 
 static const std::unordered_set<std::string> s_stdFuncs = {
-    "printf","scanf","cout","cin","endl","cerr","clog",
-    "strlen","strcmp","strcpy","strcat","memset","memcpy",
-    "malloc","calloc","realloc","free","assert","abort","exit",
-    "std::cout","std::cin","std::cerr","std::endl", "std::vector"
+    //i/o streams
+    "cerr", "cin", "clog", "cout", "endl",
+    "std::cerr", "std::cin", "std::cout", "std::endl",
+    //c string / memory
+    "memcpy", "memset", "strcat", "strcmp", "strcpy", "strlen",
+    //memory management
+    "calloc", "free", "malloc", "realloc",
+    //std containers
+    "std::vector",
+    //program control
+    "abort", "assert", "exit",
+    //c i/o
+    "printf", "scanf"
 };
+
 static const std::unordered_set<std::string> s_literals = {
-    "true","false","NULL","nullptr","this"
+    "NULL", "false", "nullptr", "this", "true"
 };
 
 //helper functions for tokenization

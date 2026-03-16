@@ -12,31 +12,54 @@
 #include <cctype>
 
 static const std::unordered_set<std::string> s_keywords = {
-    "return","if","else","while","for","switch","case","break","continue",
-    "override","virtual","const","static","new","this",
-    "public","private","protected","namespace","class","struct","enum",
-    "interface","delegate","event","using","abstract","sealed",
-    "async","await","yield","ref","out","in","params","is","as","sizeof","typeof","nameof","default","null","true","false"
+    //access modifiers
+    "public", "private", "protected",
+    //type modifiers
+    "abstract", "const", "override", "sealed", "static", "virtual",
+    //type declarations
+    "class", "delegate", "enum", "interface", "namespace", "struct",
+    //control flow
+    "break", "case", "continue", "default", "else", "for", "if", "return", "switch", "while",
+    //async
+    "async", "await", "yield",
+    //parameter modifiers
+    "in", "out", "params", "ref",
+    //operators / expressions
+    "as", "is", "nameof", "new", "sizeof", "typeof", "using",
+    //misc
+    "event", "this"
 };
 
 static const std::unordered_set<std::string> s_types = {
-    "int","float","double","char","void","bool","long","short",
-    "string","object","dynamic","decimal","DateTime","TimeSpan",
-    "Guid","Task","ValueTask","IEnumerable","IQueryable",
-    "List","Dictionary","HashSet","Tuple","ValueTuple",
-    "Nullable"
+    //primitives
+    "bool", "char", "decimal", "double", "float", "int", "long", "short", "void",
+    //built-in reference types
+    "dynamic", "object", "string",
+    //common value types
+    "DateTime", "Guid", "TimeSpan",
+    //nullable
+    "Nullable",
+    //async types
+    "Task", "ValueTask",
+    //collections
+    "Dictionary", "HashSet", "IEnumerable", "IQueryable", "List", "Tuple", "ValueTuple"
 };
 
 static const std::unordered_set<std::string> s_stdFuncs = {
-    "Console.WriteLine","Console.ReadLine","Console.Write","Console.Read",
-    "Math.Abs","Math.Sqrt","Math.Pow","Math.Max","Math.Min",
-    "string.Format","string.Join","string.Concat","string.IsNullOrEmpty",
-    "DateTime.Now","DateTime.UtcNow","DateTime.Today",
-    "Task.Run","Task.Delay","Task.FromResult"
+    //console
+    "Console.Read", "Console.ReadLine", "Console.Write", "Console.WriteLine",
+    //dateTime
+    "DateTime.Now", "DateTime.Today", "DateTime.UtcNow",
+    //math
+    "Math.Abs", "Math.Max", "Math.Min", "Math.Pow", "Math.Sqrt",
+    //string
+    "string.Concat", "string.Format", "string.IsNullOrEmpty", "string.Join",
+    //task
+    "Task.Delay", "Task.FromResult", "Task.Run"
 };
 
 static const std::unordered_set<std::string> s_literals = {
-    "true","false","null","this"
+    "false", "null", "this", "true"
 };
 
 //helper functions for tokenization

@@ -14,26 +14,45 @@
 //i will make a separate lexer for C to support C-unique features and it's legacy which is not supported/never used in C++
 
 static const std::unordered_set<std::string> s_keywords = {
-    "return","if","else","while","for","switch","case","break","continue",
-    "const","static","new","delete","this",
-    "public","private","protected","namespace","class","struct","enum",
-    "typedef","using","inline","extern","volatile",
-    "do","goto","sizeof","alignof","auto","register"
+    //access modifiers
+    "private", "protected", "public",
+    //type modifiers
+    "auto", "const", "extern", "inline", "register", "static", "typedef", "volatile",
+    //type declarations
+    "class", "enum", "namespace", "struct",
+    //control flow
+    "break", "case", "continue", "do", "else", "for", "goto", "if", "return", "switch", "while",
+    //memory
+    "delete", "new",
+    //expressions / operators
+    "alignof", "sizeof", "using",
+    //misc
+    "this"
 };
 
 static const std::unordered_set<std::string> s_types = {
-    "int","float","double","char","void","bool","long","short",
-    "unsigned","signed","wchar_t","size_t","ptrdiff_t","nullptr_t",
+    //primitives
+    "bool", "char", "double", "float", "int", "long", "short",
+    "signed", "unsigned", "void", "wchar_t",
+    //platform types
+    "nullptr_t", "ptrdiff_t", "size_t",
+    //strings
     "string"
 };
 
 static const std::unordered_set<std::string> s_stdFuncs = {
-    "printf","scanf","strlen","strcmp","strcpy","strcat","memset","memcpy",
-    "malloc","calloc","realloc","free","assert","abort","exit"
+    //c string / memory
+    "memcpy", "memset", "strcat", "strcmp", "strcpy", "strlen",
+    //memory management
+    "calloc", "free", "malloc", "realloc",
+    //program control
+    "abort", "assert", "exit",
+    //c i/o
+    "printf", "scanf"
 };
 
 static const std::unordered_set<std::string> s_literals = {
-    "true","false","NULL","nullptr","this"
+    "NULL", "false", "nullptr", "this", "true"
 };
 
 //helper functions for tokenization

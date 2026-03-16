@@ -8,194 +8,218 @@
  */
 
 #include "SyntaxHighlightSQL.h"
+#include <unordered_set>
+#include <cctype>
 
-//case-insensitive search helper
-static size_t FindCI(const wxString& text, const wxString& needle, size_t from = 0) {
-    wxString textUpper = text.Upper();
-    wxString needleUpper = needle.Upper();
-    return textUpper.find(needleUpper, from);
+static const std::unordered_set<std::string> s_keywords = {
+    //dml
+    "select", "from", "where", "insert", "update", "delete", "into", "values", "set",
+    //ddl
+    "create", "alter", "drop", "table", "index", "view", "trigger", "procedure", "function",
+    //joins
+    "join", "inner", "left", "right", "outer", "cross", "on",
+    //clauses
+    "group", "by", "order", "having", "distinct", "as", "union", "all",
+    //logic
+    "and", "or", "not", "in", "is", "like", "between", "exists", "any",
+    //conditionals
+    "case", "when", "then", "else", "end",
+    //constraints
+    "primary", "foreign", "key", "references", "default", "unique", "constraint", "null",
+    //multi-word handled as separate tokens
+    "with", "limit", "offset", "returning"
+};
+
+static const std::unordered_set<std::string> s_types = {
+    //integer
+    "bigint", "int", "integer", "smallint", "tinyint",
+    //string
+    "varchar", "nvarchar", "char", "nchar", "text",
+    //float
+    "float", "real", "double", "decimal", "numeric",
+    //date / time
+    "date", "datetime", "timestamp", "time",
+    //misc
+    "boolean", "bool", "blob", "binary"
+};
+
+static const std::unordered_set<std::string> s_functions = {
+    //aggregate
+    "count", "sum", "avg", "min", "max",
+    //math
+    "abs", "ceil", "ceiling", "floor", "round", "power", "sqrt", "mod",
+    //string
+    "upper", "lower", "length", "trim", "ltrim", "rtrim",
+    "substring", "replace", "charindex", "concat", "coalesce", "nullif",
+    //conversion
+    "cast", "convert",
+    //date
+    "now", "getdate", "datepart", "datediff", "dateadd", "curdate", "curtime"
+};
+
+//helpers
+static bool IsIdentChar(char c)  { return std::isalnum((unsigned char)c) || c == '_'; }
+static bool IsIdentStart(char c) { return std::isalpha((unsigned char)c) || c == '_'; }
+
+static std::string ToLower(const std::string& s)
+{
+    std::string out = s;
+    for (char& c : out) c = static_cast<char>(std::tolower((unsigned char)c));
+    return out;
 }
 
 void SyntaxHighlightSQL::ApplyHighlight(wxStyledTextCtrl* textCtrl)
 {
     textCtrl->ClearDocumentStyle();
     textCtrl->SetLexer(wxSTC_LEX_NULL);
-    wxString text = textCtrl->GetValue();
-    int length = textCtrl->GetTextLength(); //use STC length to avoid wxString length issues with certain encodings
 
-    if (length == 0) return;
+    const wxString wxText = textCtrl->GetValue();
+    if (wxText.empty()) return;
 
-    //ensure styles array matches actual text length
-    if ((int)text.length() < length) length = (int)text.length();
+    const std::string text = wxText.ToStdString();
+    const int len = static_cast<int>(text.size());
 
-    highlightRange.occupiedRanges.clear();
+    std::string styles(len, STYLE_DEFAULT);
 
-    std::string styles(length, STYLE_DEFAULT);
-
-    //coms /* */
-    size_t pos = text.find("/*");
-    while (pos != wxString::npos) {
-        if (!highlightRange.IsOccupied(pos, pos + 2)) {
-            size_t endPos = text.find("*/", pos + 2);
-            if (endPos != wxString::npos) {
-                endPos += 2;
-                for (size_t i = pos; i < endPos; i++)
-                    styles[i] = STYLE_COMMENT;
-                highlightRange.Mark(pos, endPos);
-                pos = text.find("/*", endPos);
-            } else {
-                for (size_t i = pos; i < (size_t)length; i++)
-                    styles[i] = STYLE_COMMENT;
-                highlightRange.Mark(pos, length);
-                break;
-            }
-        } else {
-            pos = text.find("/*", pos + 2);
-        }
-    }
-
-    //comms --
-    pos = text.find("--");
-    while (pos != wxString::npos) {
-        if (!highlightRange.IsOccupied(pos, pos + 2)) {
-            size_t endPos = text.find("\n", pos);
-            size_t commentEnd = (endPos != wxString::npos) ? endPos : (size_t)length;
-            for (size_t i = pos; i < commentEnd; i++)
-                styles[i] = STYLE_COMMENT;
-            highlightRange.Mark(pos, commentEnd);
-            pos = (endPos != wxString::npos) ? text.find("--", endPos) : wxString::npos;
-        } else {
-            pos = text.find("--", pos + 2);
-        }
-    }
-
-    //strings (handle both ' and " with simple matching, ignoring escapes for simplicity)
-    std::vector<wxString> stringDelimiters = {"'", "\""};
-    for (const auto& delimiter : stringDelimiters) {
-        pos = text.find(delimiter);
-        while (pos != wxString::npos) {
-            if (!highlightRange.IsOccupied(pos, pos + 1)) {
-                size_t endPos = text.find(delimiter, pos + 1);
-                if (endPos != wxString::npos) {
-                    for (size_t i = pos; i <= endPos; i++)
-                        styles[i] = STYLE_STRING;
-                    highlightRange.Mark(pos, endPos + 1);
-                    pos = text.find(delimiter, endPos + 1);
-                } else {
-                    break;
-                }
-            } else {
-                pos = text.find(delimiter, pos + 1);
-            }
-        }
-    }
-
-    //keywords (case-insensitive, whole-word)
-    std::vector<wxString> keywords = {
-        "GROUP BY", "ORDER BY",
-        "SELECT", "FROM", "WHERE", "INSERT", "UPDATE", "DELETE",
-        "JOIN", "INNER", "LEFT", "RIGHT", "OUTER", "CROSS", "ON",
-        "CREATE", "TABLE", "ALTER", "DROP", "INDEX", "VIEW",
-        "TRIGGER", "PROCEDURE", "FUNCTION",
-        "UNION", "HAVING", "DISTINCT", "AS",
-        "AND", "OR", "NOT", "IN", "IS", "NULL",
-        "LIKE", "BETWEEN", "EXISTS", "CONSTRAINT",
-        "SET", "INTO", "VALUES", "ALL", "ANY", "CASE", "WHEN", "THEN", "ELSE", "END",
-        "PRIMARY", "FOREIGN", "KEY", "REFERENCES", "DEFAULT", "UNIQUE"
+    auto setStyle = [&](int from, int to, char style) {
+        for (int i = from; i < to && i < len; ++i)
+            styles[i] = style;
     };
 
-    for (const auto& keyword : keywords) {
-        size_t klen = keyword.length();
-        pos = FindCI(text, keyword);
-        while (pos != wxString::npos) {
-            if (!highlightRange.IsOccupied(pos, pos + klen)) {
-                bool validStart = (pos == 0) || (!wxIsalnum(text[pos - 1]) && text[pos - 1] != '_');
-                bool validEnd   = (pos + klen >= (size_t)length) ||
-                                  (!wxIsalnum(text[pos + klen]) && text[pos + klen] != '_');
+    int i = 0;
+    while (i < len)
+    {
+        const char c  = text[i];
+        const char c1 = (i + 1 < len) ? text[i + 1] : '\0';
 
-                if (validStart && validEnd) {
-                    for (size_t i = pos; i < pos + klen; i++)
-                        styles[i] = STYLE_KEYWORD;
-                    highlightRange.Mark(pos, pos + klen);
-                }
-            }
-            pos = FindCI(text, keyword, pos + klen);
+        //block comment /* */
+        if (c == '/' && c1 == '*')
+        {
+            int start = i;
+            i += 2;
+            while (i < len - 1 && !(text[i] == '*' && text[i + 1] == '/')) ++i;
+            if (i < len - 1) i += 2; //skip '*/' only if found, avoid out-of-bounds
+            setStyle(start, i, STYLE_COMMENT);
+            continue;
         }
+
+        //line comment --
+        if (c == '-' && c1 == '-')
+        {
+            int start = i;
+            while (i < len && text[i] != '\n') ++i;
+            setStyle(start, i, STYLE_COMMENT);
+            continue;
+        }
+
+        //line comment # (mysql style)
+        if (c == '#')
+        {
+            int start = i;
+            while (i < len && text[i] != '\n') ++i;
+            setStyle(start, i, STYLE_COMMENT);
+            continue;
+        }
+
+        //string literals (single or double quoted)
+        if (c == '\'' || c == '"')
+        {
+            int start = i;
+            const char delim = c;
+            ++i; //skip opening quote
+            while (i < len)
+            {
+                if (text[i] == '\\') { i += 2; continue; } //escape sequence
+                if (text[i] == delim) { ++i; break; }       //closing quote
+                ++i;
+            }
+            setStyle(start, i, STYLE_STRING);
+            continue;
+        }
+
+        //backtick quoted identifiers (mysql style)
+        if (c == '`')
+        {
+            int start = i;
+            ++i;
+            while (i < len && text[i] != '`') ++i;
+            if (i < len) ++i; //skip closing backtick
+            setStyle(start, i, STYLE_STRING);
+            continue;
+        }
+
+        //numeric literals
+        if (std::isdigit((unsigned char)c) || (c == '.' && std::isdigit((unsigned char)c1)))
+        {
+            int start = i;
+            while (i < len && std::isdigit((unsigned char)text[i])) ++i;
+            if (i < len && text[i] == '.')
+            {
+                ++i;
+                while (i < len && std::isdigit((unsigned char)text[i])) ++i;
+            }
+            if (i < len && (text[i] == 'e' || text[i] == 'E'))
+            {
+                ++i;
+                if (i < len && (text[i] == '+' || text[i] == '-')) ++i;
+                while (i < len && std::isdigit((unsigned char)text[i])) ++i;
+            }
+            setStyle(start, i, STYLE_NUMBER);
+            continue;
+        }
+
+        //identifiers and keywords (case-insensitive)
+        if (IsIdentStart(c))
+        {
+            int start = i;
+            while (i < len && IsIdentChar(text[i])) ++i;
+            const std::string word     = text.substr(start, i - start);
+            const std::string wordLow  = ToLower(word);
+
+            //lookahead for '(' to detect function call
+            int j = i;
+            while (j < len && (text[j] == ' ' || text[j] == '\t')) ++j;
+            if (j < len && text[j] == '(')
+            {
+                if (s_keywords.count(wordLow))       setStyle(start, i, STYLE_KEYWORD);
+                else if (s_functions.count(wordLow)) setStyle(start, i, STYLE_FUNCTION);
+                else                                  setStyle(start, i, STYLE_FUNCTION);
+                continue;
+            }
+
+            if      (s_keywords.count(wordLow))  setStyle(start, i, STYLE_KEYWORD);
+            else if (s_types.count(wordLow))      setStyle(start, i, STYLE_NAMESPACE);
+            else if (s_functions.count(wordLow))  setStyle(start, i, STYLE_FUNCTION);
+            //else: STYLE_DEFAULT (table names, column names, aliases)
+            continue;
+        }
+
+        //multi-char operators
+        if (i + 1 < len)
+        {
+            static const std::unordered_set<std::string> s_ops2 = {
+                "<>", "!=", "<=", ">=", ":="
+            };
+            const std::string op2 = text.substr(i, 2);
+            if (s_ops2.count(op2))
+            {
+                setStyle(i, i + 2, STYLE_OPERATOR);
+                i += 2;
+                continue;
+            }
+        }
+
+        //single-char operators and punctuation
+        static const std::string s_singles = "=<>+-*/%(),;.!&|^~";
+        if (s_singles.find(c) != std::string::npos)
+        {
+            setStyle(i, i + 1, STYLE_OPERATOR);
+        }
+
+        ++i;
     }
 
-    //data types (case-insensitive, whole-word)
-    std::vector<wxString> dataTypes = {
-        "BIGINT", "INT", "SMALLINT", "TINYINT",
-        "VARCHAR", "NVARCHAR", "CHAR", "NCHAR", "TEXT",
-        "FLOAT", "REAL", "DOUBLE", "DECIMAL", "NUMERIC",
-        "DATE", "DATETIME", "TIMESTAMP", "TIME",
-        "BOOLEAN", "BOOL", "BLOB", "BINARY"
-    };
-    for (const auto& dtype : dataTypes) {
-        size_t dlen = dtype.length();
-        pos = FindCI(text, dtype);
-        while (pos != wxString::npos) {
-            if (!highlightRange.IsOccupied(pos, pos + dlen)) {
-                bool validStart = (pos == 0) || (!wxIsalnum(text[pos - 1]) && text[pos - 1] != '_');
-                bool validEnd   = (pos + dlen >= (size_t)length) ||
-                                  (!wxIsalnum(text[pos + dlen]) && text[pos + dlen] != '_');
-                if (validStart && validEnd) {
-                    for (size_t i = pos; i < pos + dlen; i++)
-                        styles[i] = STYLE_NAMESPACE;
-                    highlightRange.Mark(pos, pos + dlen);
-                }
-            }
-            pos = FindCI(text, dtype, pos + dlen);
-        }
-    }
-
-    //functions (case-insensitive, whole-word)
-    std::vector<wxString> functions = {
-        "COUNT", "SUM", "AVG", "MIN", "MAX",
-        "ROUND", "CEIL", "FLOOR", "ABS",
-        "UPPER", "LOWER", "LENGTH", "TRIM", "LTRIM", "RTRIM",
-        "COALESCE", "NULLIF", "CAST", "CONVERT",
-        "NOW", "GETDATE", "DATEPART", "DATEDIFF", "DATEADD",
-        "SUBSTRING", "REPLACE", "CHARINDEX", "CONCAT"
-    };
-    for (const auto& func : functions) {
-        size_t flen = func.length();
-        pos = FindCI(text, func);
-        while (pos != wxString::npos) {
-            if (!highlightRange.IsOccupied(pos, pos + flen)) {
-                bool validStart = (pos == 0) || (!wxIsalnum(text[pos - 1]) && text[pos - 1] != '_');
-                bool validEnd   = (pos + flen >= (size_t)length) ||
-                                  (!wxIsalnum(text[pos + flen]) && text[pos + flen] != '_');
-                if (validStart && validEnd) {
-                    for (size_t i = pos; i < pos + flen; i++)
-                        styles[i] = STYLE_FUNCTION;
-                    highlightRange.Mark(pos, pos + flen);
-                }
-            }
-            pos = FindCI(text, func, pos + flen);
-        }
-    }
-
-    //operators and symbols
-    std::vector<wxString> operators = {
-        "<>", "!=", "<=", ">=", "<", ">", "=",
-        "+", "-", "*", "/", "%",
-        "(", ")", ",", ";"
-    };
-    for (const auto& op : operators) {
-        size_t olen = op.length();
-        pos = text.find(op);
-        while (pos != wxString::npos) {
-            if (!highlightRange.IsOccupied(pos, pos + olen)) {
-                for (size_t i = pos; i < pos + olen; i++)
-                    styles[i] = STYLE_OPERATOR;
-                highlightRange.Mark(pos, pos + olen);
-            }
-            pos = text.find(op, pos + olen);
-        }
-    }
-
-    //apply all styles at once
+    //apply styles at once
     textCtrl->StartStyling(0);
-    textCtrl->SetStyleBytes(styles.size(), styles.data());
+    textCtrl->SetStyleBytes(len, styles.data());
 }
