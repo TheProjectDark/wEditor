@@ -377,16 +377,30 @@ void MainFrame::OnSave(wxCommandEvent& event)
 //check unsupported file formats
 bool IsFileSupported(const wxString& filename) {
     wxString ext = filename.AfterLast('.').Lower();
-    std::vector<wxString> unsupportedFileFormats = {"docx", "xlsx", "pptx", "pdf", "exe", "dll", "bin", "iso", "img",
-        "zip", "rar", "7z", "tar", "gz", "mp3", "wav", "flac", "ogg", "mp4", "avi", "mkv", "mov", "wmv", "flv", "webm",
-        "jpg", "jpeg", "png", "bmp", "gif", "svg", "psd", "ai", "eps", "ttf", "otf", "woff", "woff2", "eot", "ico", "cur", "ani",
-        "apk", "ipa", "dmg", "vmdk", "vhd", "vhdx", "qcow2", "raw", "img", "iso", "bin", "exe", "dll", "sys", "drv", "msi", "msix", "appx",
-        "deb", "rpm", "pkg", "tar.gz", "tar.bz2", "tar.xz", "7z", "zip", "rar", "gz", "bz2", "xz", "iso", "img", "bin", "exe", "dll",
-        "sys", "drv", "msi", "msix", "appx", "doc", "xls", "ppt", "docm", "xlsm", "pptm", "odt", "ods", "odp", "odg", "odf", "odb", "odc", "odi", "odm"};
-    for (const auto& unsupported : unsupportedFileFormats) {
-        if (ext == unsupported) return false;
+    static const std::unordered_set<wxString> unsupportedExts = {
+        //documents
+        "doc", "docx", "docm", "xls", "xlsx", "xlsm",
+        "ppt", "pptx", "pptm", "pdf",
+        "odt", "ods", "odp", "odg", "odf", "odb", "odc", "odi", "odm",
+        //archives
+        "zip", "rar", "7z", "tar", "gz", "bz2", "xz",
+        //images
+        "jpg", "jpeg", "png", "bmp", "gif", "svg",
+        "psd", "ai", "eps", "ico", "cur", "ani",
+        //audio
+        "mp3", "wav", "flac", "ogg",
+        //video
+        "mp4", "avi", "mkv", "mov", "wmv", "flv", "webm",
+        //fonts
+        "ttf", "otf", "woff", "woff2", "eot",
+        //executables and binaries
+        "exe", "dll", "sys", "drv", "bin", "iso", "img", "raw",
+        "msi", "msix", "appx", "apk", "ipa", "dmg",
+        "deb", "rpm", "pkg",
+        //virtual machines
+        "vmdk", "vhd", "vhdx", "qcow2"
     }
-    return true;
+    return unsupportedExts.find(ext) == unsupportedExts.end();
 }
 
 //open file and apply syntax highlight
