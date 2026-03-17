@@ -190,7 +190,7 @@ void MainFrame::LoadFile(const wxString& path) {
     wxFile file;
     if (!file.Open(path))
     {
-        wxMessageBox(wxString::Format("Failed to open file: %s", path), "Error");
+        wxMessageBox(wxString::Format("Failed to open file: %s", path), "wEditor", wxOK | wxICON_ERROR);
         return;
     }
 
@@ -370,11 +370,11 @@ void MainFrame::OnSave(wxCommandEvent& event)
     {
         file.Write(content);
         file.Close();
-        wxMessageBox("File saved succesfully");
+        wxMessageBox("File saved succesfully", "wEditor", wxOK | wxICON_INFORMATION);
     }
     else
     {
-        wxMessageBox("File saving error");
+        wxMessageBox("File saving error", "wEditor", wxOK | wxICON_ERROR);
     }
 }
 
@@ -485,7 +485,7 @@ void MainFrame::OnPreferences(wxCommandEvent& event)
 //show about window
 void MainFrame::OnAbout(wxCommandEvent& event)
 {
-    wxMessageBox("wEditor is simple cross-platform and open-souce text editor written on C++ using wxWidgets library.",
+    wxMessageBox("wEditor is simple cross-platform and open-source text editor written on C++ using wxWidgets library.",
                  "wEditor beta v2.1", wxOK | wxICON_INFORMATION);
 }
 
