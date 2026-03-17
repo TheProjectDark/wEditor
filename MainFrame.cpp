@@ -370,7 +370,7 @@ void MainFrame::OnSave(wxCommandEvent& event)
     {
         file.Write(content);
         file.Close();
-        wxMessageBox("File saved succesfully", "wEditor", wxOK | wxICON_INFORMATION);
+        wxMessageBox("File saved successfully", "wEditor", wxOK | wxICON_INFORMATION);
     }
     else
     {
