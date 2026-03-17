@@ -13,6 +13,7 @@
 #include <wx/filedlg.h>
 #include <wx/file.h>
 #include <wx/config.h>
+#include <unordered_set>
 #include "ThemeSettings.h"
 #include "../SyntaxHighlighter/SyntaxHighlighter.h"
 #include "DragNDrop.h"

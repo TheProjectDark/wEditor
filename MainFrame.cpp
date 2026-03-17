@@ -164,6 +164,7 @@ MainFrame::MainFrame(const wxString& title)
 MainFrame::~MainFrame()
 {
     delete currentHighlighter;
+    currentHighlighter = nullptr;
 }
 
 wxIMPLEMENT_APP(App);
@@ -204,6 +205,7 @@ void MainFrame::LoadFile(const wxString& path) {
     languageChoice->SetStringSelection(GetLanguageForExtension(path));
 
     delete currentHighlighter;
+    currentHighlighter = nullptr;
     currentLanguage = languageChoice->GetStringSelection();
     currentHighlighter = HighlighterFactory::CreateHighlighter(currentLanguage);
     HighlightSyntax();
@@ -240,6 +242,7 @@ void MainFrame::OnText(wxCommandEvent& event) {
 void MainFrame::OnLanguageChange(wxCommandEvent& event) {
     currentLanguage = languageChoice->GetStringSelection();
     delete currentHighlighter;
+    currentHighlighter = nullptr;
     currentHighlighter = HighlighterFactory::CreateHighlighter(currentLanguage);
     HighlightSyntax();
 }
@@ -303,6 +306,7 @@ void MainFrame::OnNewFile(wxCommandEvent& event)
     currentFilePath.Clear();
     languageChoice->SetSelection(0);
     delete currentHighlighter;
+    currentHighlighter = nullptr;
     currentHighlighter = HighlighterFactory::CreateHighlighter("Text");
     HighlightSyntax();
     wxConfigBase::Get()->DeleteEntry("Session/LastFile");
@@ -399,7 +403,7 @@ bool IsFileSupported(const wxString& filename) {
         "deb", "rpm", "pkg",
         //virtual machines
         "vmdk", "vhd", "vhdx", "qcow2"
-    }
+    };
     return unsupportedExts.find(ext) == unsupportedExts.end();
 }
 
