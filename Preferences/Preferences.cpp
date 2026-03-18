@@ -18,57 +18,62 @@ PreferencesFrame::PreferencesFrame(const wxString& title) {
     wxChoice* autosaveToggle = new wxChoice(panel, wxID_ANY);
     autosaveToggle->Append("On");
     autosaveToggle->Append("Off");
-    wxConfigBase* config = wxConfig::Get();
-    wxString autosaveValue = config->Read("Preferences/Autosave", "On");
+    wxString autosaveValue = wxConfig::Get()->Read("Preferences/Autosave", "On");
     autosaveToggle->SetStringSelection(autosaveValue);
-    autosaveToggle->Bind(wxEVT_CHOICE, [config](wxCommandEvent& event) {
-        wxString selection = event.GetString();
-        config->Write("Preferences/Autosave", selection);
-        config->Flush();
+    autosaveToggle->Bind(wxEVT_CHOICE, [](wxCommandEvent& event) {
+        wxConfig::Get()->Write("Preferences/Autosave", event.GetString());
+        wxConfig::Get()->Flush();
     });
+
     //open last file on startup choice
     wxStaticText* openLastFileLabel = new wxStaticText(panel, wxID_ANY, "Open last file on startup:");
     wxChoice* openLastFileToggle = new wxChoice(panel, wxID_ANY);
     openLastFileToggle->Append("On");
     openLastFileToggle->Append("Off");
-    wxString openLastFileValue = config->Read("Preferences/OpenLastFile", "On");
+    wxString openLastFileValue = wxConfig::Get()->Read("Preferences/OpenLastFile", "On");
     openLastFileToggle->SetStringSelection(openLastFileValue);
-    openLastFileToggle->Bind(wxEVT_CHOICE, [config](wxCommandEvent& event) {
-        wxString selection = event.GetString();
-        config->Write("Preferences/OpenLastFile", selection);
-        config->Flush();
+    openLastFileToggle->Bind(wxEVT_CHOICE, [](wxCommandEvent& event) {
+        wxConfig::Get()->Write("Preferences/OpenLastFile", event.GetString());
+        wxConfig::Get()->Flush();
     });
 
-    //set dark theme
+    //caching color to avoid repeated ThemeSettings calls
     wxColour darkBackground = ThemeSettings::GetBackgroundColour();
     wxColour darkText = ThemeSettings::GetTextColour();
+    wxColour buttonBg = ThemeSettings::GetButtonBackgroundColour();
+    wxColour buttonFg = ThemeSettings::GetButtonForegroundColour();
+
     panel->SetBackgroundColour(darkBackground);
     panel->SetForegroundColour(darkText);
     SetBackgroundColour(darkBackground);
     SetForegroundColour(darkText);
     autosaveLabel->SetBackgroundColour(darkBackground);
     autosaveLabel->SetForegroundColour(darkText);
-    autosaveToggle->SetBackgroundColour(ThemeSettings::GetButtonBackgroundColour());
-    autosaveToggle->SetForegroundColour(ThemeSettings::GetButtonForegroundColour());
+    autosaveToggle->SetBackgroundColour(buttonBg);
+    autosaveToggle->SetForegroundColour(buttonFg);
     openLastFileLabel->SetBackgroundColour(darkBackground);
     openLastFileLabel->SetForegroundColour(darkText);
-    openLastFileToggle->SetBackgroundColour(ThemeSettings::GetButtonBackgroundColour());
-    openLastFileToggle->SetForegroundColour(ThemeSettings::GetButtonForegroundColour());
+    openLastFileToggle->SetBackgroundColour(buttonBg);
+    openLastFileToggle->SetForegroundColour(buttonFg);
+    //setting min sizes up
+    autosaveLabel->SetMinSize(wxSize(70, -1));
+    autosaveToggle->SetMinSize(wxSize(100, -1));
+    openLastFileLabel->SetMinSize(wxSize(150, -1));
+    openLastFileToggle->SetMinSize(wxSize(100, -1));
 
     //setup sizers
-    wxBoxSizer* mainSizer = new wxBoxSizer(wxVERTICAL);
     wxBoxSizer* autosaveSizer = new wxBoxSizer(wxHORIZONTAL);
     autosaveSizer->Add(autosaveLabel, 0, wxRIGHT, 5);
     autosaveSizer->Add(autosaveToggle, 0);
-    mainSizer->Add(autosaveSizer, 0, wxALL, 10);
-    panel->SetSizer(mainSizer);
-    //set small size for autosave toggle
-    autosaveToggle->SetMinSize(wxSize(100, -1));
-    autosaveLabel->SetMinSize(wxSize(70, -1));
+
     wxBoxSizer* openLastFileSizer = new wxBoxSizer(wxHORIZONTAL);
     openLastFileSizer->Add(openLastFileLabel, 0, wxRIGHT, 5);
     openLastFileSizer->Add(openLastFileToggle, 0);
+
+    wxBoxSizer* mainSizer = new wxBoxSizer(wxVERTICAL);
+    mainSizer->Add(autosaveSizer, 0, wxALL, 10);
     mainSizer->Add(openLastFileSizer, 0, wxALL, 10);
-    openLastFileToggle->SetMinSize(wxSize(100, -1));
-    openLastFileLabel->SetMinSize(wxSize(70, -1));
+
+    panel->SetSizer(mainSizer);
+    panel->Layout();
 }

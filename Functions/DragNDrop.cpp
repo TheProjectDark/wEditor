@@ -12,10 +12,7 @@
 
 bool DragNDrop::OnDropFiles(wxCoord x, wxCoord y, const wxArrayString& filenames)
 {
-    for (const auto& filename : filenames) {
-        wxArrayString fileArray;
-        fileArray.Add(filename);
-        m_frame->OnDropFiles(fileArray);
-    }
+    if (!m_frame) return false;
+    m_frame->OnDropFiles(filenames);
     return true;
 }

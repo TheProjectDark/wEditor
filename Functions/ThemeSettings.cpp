@@ -9,9 +9,6 @@
 
 #include "ThemeSettings.h"
 
-//set dark or light theme according to config
-
-
 wxColour ThemeSettings::GetBackgroundColour()
 {
     return wxColour(BG_RED, BG_GREEN, BG_BLUE);
@@ -59,10 +56,11 @@ void ThemeSettings::ApplyDarkTheme(wxStyledTextCtrl* textCtrl)
 
     //margins
     textCtrl->SetMarginType(0, wxSTC_MARGIN_NUMBER);
-    textCtrl->SetMarginType(1, wxSTC_MARGIN_SYMBOL);
     textCtrl->SetMarginWidth(0, 40); 
+    textCtrl->SetMarginType(1, wxSTC_MARGIN_SYMBOL);
+    textCtrl->SetMarginWidth(1, 0);
 
-    for (int i = 0; i < 3; i++)
+    for (int i = 0; i < 2; i++)
         textCtrl->SetMarginBackground(i, bg);
 
     textCtrl->SetFoldMarginColour(true, bg);
@@ -122,5 +120,4 @@ void ThemeSettings::ApplyDarkTheme(wxStyledTextCtrl* textCtrl)
     textCtrl->SetViewWhiteSpace(wxSTC_WS_INVISIBLE);
     textCtrl->SetViewEOL(false);
     textCtrl->SetCaretLineVisible(false);
-    textCtrl->SetWrapMode(wxSTC_WRAP_WORD);
 }

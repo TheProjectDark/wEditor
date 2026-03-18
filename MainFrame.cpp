@@ -58,8 +58,14 @@ MainFrame::MainFrame(const wxString& title)
     #endif
     //set caret line to visible with a subtle background color
     textCtrl->SetCaretLineBackground(wxColour(50, 50, 70));
-    textCtrl->SetCaretLineVisible(true);
+    constexpr bool CARET_LINE_VISIBLE = false;
+    textCtrl->SetCaretLineVisible(CARET_LINE_VISIBLE);
     textCtrl->SetIndentationGuides(true);
+    textCtrl->SetWrapMode(wxSTC_WRAP_WORD);
+    highlightTimer.SetOwner(this);
+        Bind(wxEVT_TIMER, [this](wxTimerEvent&) {
+            HighlightSyntax();
+        }, highlightTimer.GetId());
     
     wxButton* newFile = new wxButton(panel, wxID_ANY, "New file");
     wxButton* saveAs = new wxButton(panel, wxID_ANY, "Save as");
@@ -169,6 +175,17 @@ MainFrame::~MainFrame()
 
 wxIMPLEMENT_APP(App);
 
+//adding values to wildcard
+const::wxString MainFrame::wildcard =
+    "All files (*.*)|*.*|"
+    "Text files (*.txt)|*.txt|"
+    "C++ files (*.cpp;*.hpp;*.h)|*.cpp;*.hpp;*.h|"
+    "C files (*.c;*.h)|*.c;*.h|"
+    "Java files (*.java)|*.java|"
+    "Python files (*.py)|*.py|"
+    "Assembly files (*.asm;*.s)|*.asm;*.s|"
+    "SQL files (*.sql)|*.sql";
+
 //show main frame
 bool App::OnInit() {
     SetExitOnFrameDelete(true);
@@ -235,7 +252,6 @@ void MainFrame::UpdateLineNumberMargin()
 
 //syntax highlight functions
 void MainFrame::OnText(wxCommandEvent& event) {
-    HighlightSyntax();
     UpdateLineNumberMargin();
     highlightTimer.StartOnce(150);
 }
@@ -486,7 +502,7 @@ void MainFrame::OnPreferences(wxCommandEvent& event)
 void MainFrame::OnAbout(wxCommandEvent& event)
 {
     wxMessageBox("wEditor is a simple cross-platform and open-source text editor written on C++ using wxWidgets library.",
-                 "wEditor beta v2.1", wxOK | wxICON_INFORMATION);
+                 "wEditor beta v3.0", wxOK | wxICON_INFORMATION);
 }
 
 //close app

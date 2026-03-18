@@ -18,9 +18,6 @@
 #include "../SyntaxHighlighter/SyntaxHighlighter.h"
 #include "DragNDrop.h"
 #include "../Preferences/Preferences.h"
-#ifdef __WXMSW__
-    #include <wx/icon.h>
-#endif
 
 //frame class and functions
 class MainFrame : public wxFrame
@@ -33,25 +30,17 @@ class MainFrame : public wxFrame
         void LoadFile(const wxString& path);
         void RestoreLastFile();
 
-        //debounce for highlight
-        wxTimer highlightTimer;
-
-        //wildcard
-        wxString wildcard =
-        "All files (*.*)|*.*|"
-        "Text files (*.txt)|*.txt|"
-        "C++ files (*.cpp;*.hpp;*.h)|*.cpp;*.hpp;*.h|"
-        "C files (*.c;*.h)|*.c;*.h|"
-        "Java files (*.java)|*.java|"
-        "Python files (*.py)|*.py|"
-        "Assembly files (*.asm;*.s)|*.asm;*.s|"
-        "SQL files (*.sql)|*.sql";
     private:
         wxStyledTextCtrl* textCtrl;
         wxChoice* languageChoice;
         SyntaxHighlighter* currentHighlighter;
         wxString currentLanguage;
         wxString currentFilePath;
+        //debounce for highlight
+        wxTimer highlightTimer;
+
+        //wildcard
+        static const wxString wildcard;
 
         void OnExit(wxCommandEvent& event);
         void OnAbout(wxCommandEvent& event);
