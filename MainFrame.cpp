@@ -418,7 +418,9 @@ bool IsFileSupported(const wxString& filename) {
         "msi", "msix", "appx", "apk", "ipa", "dmg",
         "deb", "rpm", "pkg",
         //virtual machines
-        "vmdk", "vhd", "vhdx", "qcow2"
+        "vmdk", "vhd", "vhdx", "qcow2",
+        //executables
+        "exe", "msi", "app", "macho", "so", "bin"
     };
     return unsupportedExts.find(ext) == unsupportedExts.end();
 }
