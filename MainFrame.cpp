@@ -58,7 +58,7 @@ MainFrame::MainFrame(const wxString& title)
     #endif
     //set caret line to visible with a subtle background color
     textCtrl->SetCaretLineBackground(wxColour(50, 50, 70));
-    constexpr bool CARET_LINE_VISIBLE = false;
+    constexpr bool CARET_LINE_VISIBLE = true;
     textCtrl->SetCaretLineVisible(CARET_LINE_VISIBLE);
     textCtrl->SetIndentationGuides(true);
     textCtrl->SetWrapMode(wxSTC_WRAP_WORD);
