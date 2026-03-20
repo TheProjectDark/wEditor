@@ -318,20 +318,38 @@ wxString MainFrame::GetLanguageForExtension(const wxString& filename) const {
 //new file function
 void MainFrame::OnNewFile(wxCommandEvent& event) 
 {
+    //autosave before cleaning textCtrl
+    if (!currentFilePath.IsEmpty())
+    {
+        wxString content = textCtrl->GetValue();
+        wxFile file;
+        if (file.Open(currentFilePath, wxFile::write))
+        {
+            file.Write(content);
+            file.Close();
+        }
+    }
+
+    wxString prevFilePath = currentFilePath;
+
     textCtrl->Clear();
+    textCtrl->SetValue("");
     currentFilePath.Clear();
     languageChoice->SetSelection(0);
+
     delete currentHighlighter;
     currentHighlighter = nullptr;
     currentHighlighter = HighlighterFactory::CreateHighlighter("Text");
+
     HighlightSyntax();
+
     wxConfigBase::Get()->DeleteEntry("Session/LastFile");
     wxConfigBase::Get()->Flush();
-    OnSave(event); //save new file
-    //loading new file to apply syntax highlight
-    wxString path = currentFilePath;
-    if (!path.IsEmpty()) {
-        OpenFile(path);
+
+    OnSave(event);
+    if (currentFilePath.IsEmpty() && !prevFilePath.IsEmpty())
+    {
+        OpenFile(prevFilePath);
     }
 }
 
