@@ -62,18 +62,17 @@ PreferencesFrame::PreferencesFrame(const wxString& title) {
     openLastFileToggle->SetMinSize(wxSize(100, -1));
 
     //setup sizers
-    wxBoxSizer* autosaveSizer = new wxBoxSizer(wxHORIZONTAL);
-    autosaveSizer->Add(autosaveLabel, 0, wxRIGHT, 5);
-    autosaveSizer->Add(autosaveToggle, 0);
+    wxFlexGridSizer* gridSizer = new wxFlexGridSizer(2, 2, 10, 10); // rows, cols, vgap, hgap
+    gridSizer->AddGrowableCol(0);
 
-    wxBoxSizer* openLastFileSizer = new wxBoxSizer(wxHORIZONTAL);
-    openLastFileSizer->Add(openLastFileLabel, 0, wxRIGHT, 5);
-    openLastFileSizer->Add(openLastFileToggle, 0);
+    gridSizer->Add(autosaveLabel, 0, wxALIGN_CENTER_VERTICAL);
+    gridSizer->Add(autosaveToggle, 0, wxALIGN_CENTER_VERTICAL);
+
+    gridSizer->Add(openLastFileLabel, 0, wxALIGN_CENTER_VERTICAL);
+    gridSizer->Add(openLastFileToggle, 0, wxALIGN_CENTER_VERTICAL);
 
     wxBoxSizer* mainSizer = new wxBoxSizer(wxVERTICAL);
-    mainSizer->Add(autosaveSizer, 0, wxALL, 10);
-    mainSizer->Add(openLastFileSizer, 0, wxALL, 10);
-
+    mainSizer->Add(gridSizer, 0, wxALL, 10);
     panel->SetSizer(mainSizer);
     panel->Layout();
 }
