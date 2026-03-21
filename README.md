@@ -1,4 +1,5 @@
 # wEditor
+![Description](assets/wEditor.png)
 
 A free and open-source text and code editor written in C++ using the [wxWidgets](https://www.wxwidgets.org/) library. wEditor is a personal hobby project focused on being fast, minimal, and cross-platform.
 
@@ -28,6 +29,12 @@ Pre-built binaries are available on the [Releases](https://github.com/TheProject
 | Linux    | AMD64       |
 | Windows 7+ | AMD64    |
 | macOS    | ARM64 *(macOS 26+ recommended)* |
+
+---
+
+## Screenshots
+
+![Description](assets/macOS.png)
 
 ---
 
