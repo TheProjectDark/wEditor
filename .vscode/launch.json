@@ -12,7 +12,7 @@
             "environment": [],
             "externalConsole": false,
             "MIMode": "lldb",
-            "preLaunchTask": "build-wx",
+            "preLaunchTask": "build",
             "logging": {
                 "engineLogging": false
             }
