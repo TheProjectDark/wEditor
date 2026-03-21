@@ -7,7 +7,7 @@
  * (at your option) any later version.
  */
 
-#include "Text.h"
+#include <weditor/SyntaxHighlighter/Text.h>
 
 void Text::ApplyHighlight(wxStyledTextCtrl* textCtrl) {
     textCtrl->ClearDocumentStyle(); //fix

@@ -7,7 +7,7 @@
  * (at your option) any later version.
  */
 
-#include "SyntaxHighlightAssembly.h"
+#include <weditor/SyntaxHighlighter/SyntaxHighlightAssembly.h>
 #include <unordered_set>
 #include <cctype>
 

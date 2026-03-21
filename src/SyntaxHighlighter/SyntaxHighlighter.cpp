@@ -7,15 +7,15 @@
  * (at your option) any later version.
  */
 
-#include "SyntaxHighlighter.h"
-#include "Text.h"
-#include "SyntaxHighlightCPP.h"
-#include "SyntaxHighlightCSharp.h"
-#include "SyntaxHighlightC.h"
-#include "SyntaxHighlightJava.h"
-#include "SyntaxHighlightPython.h"
-#include "SyntaxHighlightAssembly.h"
-#include "SyntaxHighlightSQL.h"
+#include <weditor/SyntaxHighlighter/SyntaxHighlighter.h>
+#include <weditor/SyntaxHighlighter/Text.h>
+#include <weditor/SyntaxHighlighter/SyntaxHighlightCPP.h>
+#include <weditor/SyntaxHighlighter/SyntaxHighlightCSharp.h>
+#include <weditor/SyntaxHighlighter/SyntaxHighlightC.h>
+#include <weditor/SyntaxHighlighter/SyntaxHighlightJava.h>
+#include <weditor/SyntaxHighlighter/SyntaxHighlightPython.h>
+#include <weditor/SyntaxHighlighter/SyntaxHighlightAssembly.h>
+#include <weditor/SyntaxHighlighter/SyntaxHighlightSQL.h>
 
 SyntaxHighlighter* HighlighterFactory::CreateHighlighter(const wxString& language) {
     if (language == "Text") {

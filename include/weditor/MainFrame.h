@@ -15,9 +15,9 @@
 #include <wx/config.h>
 #include <unordered_set>
 #include "ThemeSettings.h"
-#include "../SyntaxHighlighter/SyntaxHighlighter.h"
+#include "SyntaxHighlighter/SyntaxHighlighter.h"
 #include "DragNDrop.h"
-#include "../Preferences/Preferences.h"
+#include "Preferences.h"
 
 //frame class and functions
 class MainFrame : public wxFrame

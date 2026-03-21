@@ -9,11 +9,11 @@
 
 #pragma once
 #include <wx/wx.h>
-#include <wx/stc/stc.h>
-#include "SyntaxHighlighter.h"
-#include "../Functions/ThemeSettings.h"
+#include <wx/config.h>
+#include "ThemeSettings.h"
 
-class SyntaxHighlightSQL : public SyntaxHighlighter {
-    void ApplyHighlight(wxStyledTextCtrl* textCtrl) override;
-    wxString GetLanguageName() const override { return "SQL Script"; }
+//Preferences frame class
+class PreferencesFrame : public wxFrame {
+    public:
+        PreferencesFrame(const wxString& title);
 };

@@ -7,7 +7,7 @@
  * (at your option) any later version.
  */
 
-#include "Preferences.h"
+#include <weditor/Preferences.h>
 
 //Preferences frame constructor
 PreferencesFrame::PreferencesFrame(const wxString& title) {

@@ -15,19 +15,19 @@ CXXFLAGS = -std=c++23 -O2
 TARGET = wEditor
 
 SRC = \
-MainFrame.cpp \
-SyntaxHighlighter/SyntaxHighlightCPP.cpp \
-SyntaxHighlighter/SyntaxHighlightCSharp.cpp \
-SyntaxHighlighter/SyntaxHighlighter.cpp \
-SyntaxHighlighter/Text.cpp \
-SyntaxHighlighter/SyntaxHighlightC.cpp \
-SyntaxHighlighter/SyntaxHighlightJava.cpp \
-SyntaxHighlighter/SyntaxHighlightPython.cpp \
-SyntaxHighlighter/SyntaxHighlightAssembly.cpp \
-SyntaxHighlighter/SyntaxHighlightSQL.cpp \
-Functions/DragNDrop.cpp \
-Functions/ThemeSettings.cpp \
-Preferences/Preferences.cpp
+src/MainFrame.cpp \
+src/SyntaxHighlighter/SyntaxHighlightCPP.cpp \
+src/SyntaxHighlighter/SyntaxHighlightCSharp.cpp \
+src/SyntaxHighlighter/SyntaxHighlighter.cpp \
+src/SyntaxHighlighter/Text.cpp \
+src/SyntaxHighlighter/SyntaxHighlightC.cpp \
+src/SyntaxHighlighter/SyntaxHighlightJava.cpp \
+src/SyntaxHighlighter/SyntaxHighlightPython.cpp \
+src/SyntaxHighlighter/SyntaxHighlightAssembly.cpp \
+src/SyntaxHighlighter/SyntaxHighlightSQL.cpp \
+src/DragNDrop.cpp \
+src/ThemeSettings.cpp \
+src/Preferences.cpp
 
 WX_CONFIG = wx-config
 
@@ -39,7 +39,7 @@ WX_LIBS = $(shell $(WX_CONFIG) --libs std,stc)
 all: $(TARGET)
 
 $(TARGET): $(SRC)
-	$(CXX) $(CXXFLAGS) $(WX_CXXFLAGS) $(SRC) -o $(TARGET) $(WX_LIBS)
+	$(CXX) $(CXXFLAGS) $(WX_CXXFLAGS) -Iinclude $(SRC) -o $(TARGET) $(WX_LIBS)
 
 clean:
 	rm -f $(TARGET)

@@ -6,10 +6,10 @@
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
  */
-
+#include <weditor/SyntaxHighlighter/SyntaxHighlightJava.h>
 #include <unordered_set>
 #include <cctype>
-#include "SyntaxHighlightJava.h"
+
 //declaring Java keywords, types, literals and standard functions for syntax highlighting
 static const std::unordered_set<std::string> javaKeywords = {
     "abstract", "assert", "boolean", "break", "byte",

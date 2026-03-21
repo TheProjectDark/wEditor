@@ -7,7 +7,7 @@
  * (at your option) any later version.
  */
 
-#include "Functions/MainFrame.h"
+#include <weditor/MainFrame.h>
 
 //app class to launch this editor
 class App : public wxApp

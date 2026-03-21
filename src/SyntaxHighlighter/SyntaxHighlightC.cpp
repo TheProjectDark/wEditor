@@ -7,59 +7,52 @@
  * (at your option) any later version.
  */
 
-#include "SyntaxHighlightCSharp.h"
+#include <weditor/SyntaxHighlighter/SyntaxHighlightC.h>
 #include <unordered_set>
 #include <cctype>
 
+//i will make a separate lexer for C to support C-unique features and it's legacy which is not supported/never used in C++
+
 static const std::unordered_set<std::string> s_keywords = {
     //access modifiers
-    "public", "private", "protected",
+    "private", "protected", "public",
     //type modifiers
-    "abstract", "const", "override", "sealed", "static", "virtual",
+    "auto", "const", "extern", "inline", "register", "static", "typedef", "volatile",
     //type declarations
-    "class", "delegate", "enum", "interface", "namespace", "struct",
+    "class", "enum", "namespace", "struct",
     //control flow
-    "break", "case", "continue", "default", "else", "for", "if", "return", "switch", "while",
-    //async
-    "async", "await", "yield",
-    //parameter modifiers
-    "in", "out", "params", "ref",
-    //operators / expressions
-    "as", "is", "nameof", "new", "sizeof", "typeof", "using",
+    "break", "case", "continue", "do", "else", "for", "goto", "if", "return", "switch", "while",
+    //memory
+    "delete", "new",
+    //expressions / operators
+    "alignof", "sizeof", "using",
     //misc
-    "event", "this"
+    "this"
 };
 
 static const std::unordered_set<std::string> s_types = {
     //primitives
-    "bool", "char", "decimal", "double", "float", "int", "long", "short", "void",
-    //built-in reference types
-    "dynamic", "object", "string",
-    //common value types
-    "DateTime", "Guid", "TimeSpan",
-    //nullable
-    "Nullable",
-    //async types
-    "Task", "ValueTask",
-    //collections
-    "Dictionary", "HashSet", "IEnumerable", "IQueryable", "List", "Tuple", "ValueTuple"
+    "bool", "char", "double", "float", "int", "long", "short",
+    "signed", "unsigned", "void", "wchar_t",
+    //platform types
+    "nullptr_t", "ptrdiff_t", "size_t",
+    //strings
+    "string"
 };
 
 static const std::unordered_set<std::string> s_stdFuncs = {
-    //console
-    "Console.Read", "Console.ReadLine", "Console.Write", "Console.WriteLine",
-    //dateTime
-    "DateTime.Now", "DateTime.Today", "DateTime.UtcNow",
-    //math
-    "Math.Abs", "Math.Max", "Math.Min", "Math.Pow", "Math.Sqrt",
-    //string
-    "string.Concat", "string.Format", "string.IsNullOrEmpty", "string.Join",
-    //task
-    "Task.Delay", "Task.FromResult", "Task.Run"
+    //c string / memory
+    "memcpy", "memset", "strcat", "strcmp", "strcpy", "strlen",
+    //memory management
+    "calloc", "free", "malloc", "realloc",
+    //program control
+    "abort", "assert", "exit",
+    //c i/o
+    "printf", "scanf"
 };
 
 static const std::unordered_set<std::string> s_literals = {
-    "false", "null", "this", "true"
+    "NULL", "false", "nullptr", "this", "true"
 };
 
 //helper functions for tokenization
@@ -67,7 +60,7 @@ static bool IsIdentChar(char c) { return std::isalnum((unsigned char)c) || c == 
 static bool IsIdentStart(char c) { return std::isalpha((unsigned char)c) || c == '_'; }
 
 //tokenize and apply styles
-void SyntaxHighlightCSharp::ApplyHighlight(wxStyledTextCtrl* textCtrl)
+void SyntaxHighlightC::ApplyHighlight(wxStyledTextCtrl* textCtrl)
 {
     textCtrl->ClearDocumentStyle();
     textCtrl->SetLexer(wxSTC_LEX_NULL);
@@ -79,7 +72,7 @@ void SyntaxHighlightCSharp::ApplyHighlight(wxStyledTextCtrl* textCtrl)
     const std::string text = wxText.ToStdString();
     const int len = static_cast<int>(text.size());
 
-    std::string styles (len, STYLE_DEFAULT);
+    std::string styles(len, STYLE_DEFAULT);
 
     auto setStyle = [&](int from, int to, char style) {
         for (int i = from; i < to && i < len; ++i)
@@ -88,13 +81,13 @@ void SyntaxHighlightCSharp::ApplyHighlight(wxStyledTextCtrl* textCtrl)
 
     int i = 0;
     while (i < len)
-    {        
+    {
         const char c  = text[i];
         const char c1 = (i + 1 < len) ? text[i + 1] : '\0';
 
         //one line comment //
         if (c == '/' && c1 == '/')
-        {            
+        {
             int start = i;
             while (i < len && text[i] != '\n') ++i;
             setStyle(start, i, STYLE_COMMENT);
@@ -111,6 +104,7 @@ void SyntaxHighlightCSharp::ApplyHighlight(wxStyledTextCtrl* textCtrl)
             setStyle(start, i, STYLE_COMMENT);
             continue;
         }
+
         //string/char literals
         if (c == '"' || c == '\'')
         {
@@ -119,7 +113,7 @@ void SyntaxHighlightCSharp::ApplyHighlight(wxStyledTextCtrl* textCtrl)
             ++i;
             while (i < len)
             {
-                if (text[i] == '\\') { i += 2; continue; } //skip escaped chars
+                if (text[i] == '\\') { i += 2; continue; } // escape
                 if (text[i] == delim) { ++i; break; }
                 ++i;
             }
@@ -136,15 +130,9 @@ void SyntaxHighlightCSharp::ApplyHighlight(wxStyledTextCtrl* textCtrl)
             while (i < len && std::isalpha((unsigned char)text[i])) ++i;
             setStyle(start, i, STYLE_PREPROCESSOR);
 
-            //for using, also style the path from space to ;
+            //for #include, also style the path
             const std::string directive = text.substr(start + 1, i - start - 1);
-            if (directive == "using")
-            {
-                while (i < len && text[i] != ';') ++i;
-                if (i < len && text[i] == ';') ++i;
-                setStyle(start, i, STYLE_NAMESPACE);
-            }
-            else if (directive == "include")
+            if (directive == "include")
             {
                 //skip whitespace
                 while (i < len && text[i] == ' ') ++i;
@@ -159,8 +147,9 @@ void SyntaxHighlightCSharp::ApplyHighlight(wxStyledTextCtrl* textCtrl)
             continue;
         }
 
-        //numbers
-        if (std::isdigit((unsigned char)c))
+        //numeric literals (int, float.. whatever)
+        if (std::isdigit((unsigned char)c) ||
+            (c == '.' && std::isdigit((unsigned char)c1)))
         {
             int start = i;
             if (c == '0' && (c1 == 'x' || c1 == 'X')) //hex
@@ -188,11 +177,10 @@ void SyntaxHighlightCSharp::ApplyHighlight(wxStyledTextCtrl* textCtrl)
                     while (i < len && std::isdigit((unsigned char)text[i])) ++i;
                 }
             }
-            //optional suffixes like f, d, m for float/double/decimal
-            if (i < len && (text[i] == 'f' || text[i] == 'F' || text[i] == 'd' || text[i] == 'D' || text[i] == 'm' || text[i] == 'M'))
-            {++i;
-                if (i < len && (text[i] == 'l' || text[i] == 'L')) ++i; //long suffix
-            }
+            //optional suffix: u, l, f, ul, ll …
+            while (i < len && (text[i] == 'u' || text[i] == 'U' ||
+                                text[i] == 'l' || text[i] == 'L' ||
+                                text[i] == 'f' || text[i] == 'F')) ++i;
             setStyle(start, i, STYLE_NUMBER);
             continue;
         }
@@ -203,10 +191,10 @@ void SyntaxHighlightCSharp::ApplyHighlight(wxStyledTextCtrl* textCtrl)
             int start = i;
             while (i < len && IsIdentChar(text[i])) ++i;
 
-            //handle qualified names like Namespace.Class.Method
-            while (i + 1 < len && text[i] == '.' && IsIdentStart(text[i+1]))
+            //handle namespaces and class scopes (e.g. std::vector)
+            while (i + 1 < len && text[i] == ':' && text[i+1] == ':')
             {
-                i += 2; //skip dot and move to next identifier
+                i += 2;
                 while (i < len && IsIdentChar(text[i])) ++i;
             }
 
@@ -225,16 +213,40 @@ void SyntaxHighlightCSharp::ApplyHighlight(wxStyledTextCtrl* textCtrl)
                 continue;
             }
 
-            //classify as keyword, type, std function, literal or default
-            if (s_keywords.count(word))
-                setStyle(start, i, STYLE_KEYWORD);
-            else if (s_types.count(word))
-                setStyle(start, i, STYLE_KEYWORD);
-            else if (s_stdFuncs.count(word))
-                setStyle(start, i, STYLE_FUNCTION);
-            else if (s_literals.count(word))
-                setStyle(start, i, STYLE_NUMBER);
+            //classify as keyword, type, function or literal
+            if (s_keywords.count(word))        setStyle(start, i, STYLE_KEYWORD);
+            else if (s_types.count(word))       setStyle(start, i, STYLE_KEYWORD);
+            else if (s_stdFuncs.count(word))    setStyle(start, i, STYLE_FUNCTION);
+            else if (s_literals.count(word))    setStyle(start, i, STYLE_NUMBER);
             //else: STYLE_DEFAULT (normal identifier)
+            continue;
+        }
+
+        //digraphs (alternative tokens, legacy but still valid in C, while being almost never used in C++)
+        if (c == '<' && c1 == ':')
+        {
+            setStyle(i, i + 2, STYLE_OPERATOR);
+            i += 2;
+            continue;
+        }
+        if (c == ':' && c1 == '>')
+        {            setStyle(i, i + 2, STYLE_OPERATOR);
+            i += 2;
+            continue;
+        }
+        if (c == '<' && c1 == '%')
+        {            setStyle(i, i + 2, STYLE_OPERATOR);
+            i += 2;
+            continue;
+        }
+        if (c == '%' && c1 == '>')
+        {            setStyle(i, i + 2, STYLE_OPERATOR);
+            i += 2;
+            continue;
+        }
+        if (c == '%' && c1 == ':')
+        {            setStyle(i, i + 2, STYLE_OPERATOR);
+            i += 2;
             continue;
         }
 

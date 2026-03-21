@@ -7,7 +7,7 @@
  * (at your option) any later version.
  */
 
-#include "SyntaxHighlightSQL.h"
+#include <weditor/SyntaxHighlighter/SyntaxHighlightSQL.h>
 #include <unordered_set>
 #include <cctype>
 

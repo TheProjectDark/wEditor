@@ -7,7 +7,7 @@
  * (at your option) any later version.
  */
 
-#include "ThemeSettings.h"
+#include <weditor/ThemeSettings.h>
 
 wxColour ThemeSettings::GetBackgroundColour()
 {

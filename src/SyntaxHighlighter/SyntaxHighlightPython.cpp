@@ -7,7 +7,7 @@
  * (at your option) any later version.
  */
 
-#include "SyntaxHighlightPython.h"
+#include <weditor/SyntaxHighlighter/SyntaxHighlightPython.h>
 #include <unordered_set>
 #include <cctype>
 

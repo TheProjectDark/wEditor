@@ -10,7 +10,7 @@
 #pragma once
 #include <wx/wx.h>
 #include <wx/stc/stc.h>
-#include "../SyntaxHighlighter/SyntaxHighlighter.h"
+#include "SyntaxHighlighter/SyntaxHighlighter.h"
 
 class ThemeSettings
 {

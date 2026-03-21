@@ -7,8 +7,8 @@
  * (at your option) any later version.
  */
 
-#include "DragNDrop.h"
-#include "MainFrame.h"
+#include <weditor/DragNDrop.h>
+#include <weditor/MainFrame.h>
 
 bool DragNDrop::OnDropFiles(wxCoord x, wxCoord y, const wxArrayString& filenames)
 {
