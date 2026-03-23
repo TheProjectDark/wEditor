@@ -35,6 +35,9 @@ Pre-built binaries are available on the [Releases](https://github.com/TheProject
 ## Screenshots
 
 ![Description](assets/macOS.png)
+![Description](assets/Linux.png)
+![Description](assets/Windows11.png)
+![Description](assets/Windows7.png)
 
 ---
 
