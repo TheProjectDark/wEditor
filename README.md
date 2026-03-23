@@ -1,17 +1,27 @@
 # wEditor
-![Description](assets/wEditor.png)
 
-A free and open-source text and code editor written in C++ using the [wxWidgets](https://www.wxwidgets.org/) library. wEditor is a personal hobby project focused on being fast, minimal, and cross-platform.
+![wEditor](assets/wEditor.png)
+
+> **⚡ Portable. Lightweight. Cross-Platform.** — wEditor runs on any machine, requires no installation, and stays out of your way.
+
+A free and open-source text and code editor written in C++ using the [wxWidgets](https://www.wxwidgets.org/) library. wEditor is a personal hobby project built around one idea: a fast, no-nonsense editor you can drop on any computer and just use.
 
 > **Status:** Beta — the editor is functional but may contain bugs and unfinished features.
+
+---
+
+## Why wEditor?
+
+Most editors today are bloated with features you never use, slow to start, or tied to a runtime like Electron or Java. wEditor is different — it's a **native C++ application** that launches instantly, uses minimal memory, and runs identically on Linux, Windows, and macOS. No installation required — just grab the binary and go.
 
 ---
 
 ## Features
 
 - 🎨 **Syntax Highlighting** — readable, colorized code out of the box
-- ⚡ **Lightweight & Fast** — minimal footprint, launches instantly
-- 🖥️ **Cross-Platform** — runs on Linux, Windows, and macOS
+- ⚡ **Lightweight & Fast** — tiny footprint, instant startup, no runtime needed
+- 🖥️ **Truly Cross-Platform** — one consistent experience on Linux, Windows, and macOS
+- 📦 **Portable** — no installation required, just run the binary anywhere
 - 📄 **Full File Management** — New, Open, Save, and Save As support
 - ↩️ **Undo / Redo** — confidently edit without fear of mistakes
 - 💾 **Autosave on Exit** — never lose work accidentally *(can be disabled in Preferences)*
@@ -22,53 +32,61 @@ A free and open-source text and code editor written in C++ using the [wxWidgets]
 
 ## Downloads
 
-Pre-built binaries are available on the [Releases](https://github.com/TheProjectDark/wEditor/releases) page for:
+Download pre-built application from the [Releases](https://github.com/TheProjectDark/wEditor/releases) page — no installation needed, just run it.
 
-| Platform | Architecture |
-|----------|-------------|
-| Linux    | AMD64       |
-| Windows 7+ | AMD64    |
-| macOS    | ARM64 *(macOS 26+ recommended)* |
+| Platform   | Architecture |
+|------------|-------------|
+| Linux      | AMD64       |
+| Windows 7+ | AMD64       |
+| macOS      | ARM64 *(macOS 26+ recommended)* |
 
 ---
 
 ## Screenshots
 
-![Description](assets/macOS.png)
-![Description](assets/Linux.png)
-![Description](assets/Windows11.png)
-![Description](assets/Windows7.png)
+![macOS](assets/macOS.png)
+![Linux](assets/Linux.png)
+![Windows 11](assets/Windows11.png)
+![Windows 7](assets/Windows7.png)
 
 ---
 
 ## Building from Source
 
-### Prerequisites
+### Linux & macOS — Makefile
 
-- **wxWidgets** — It is recommended to build wxWidgets from source. Follow the [official installation guide](https://docs.wxwidgets.org/3.3/plat_osx_install.html) (the guide targets macOS but also works on Linux).
-- **Clang** — or another C++ compiler of your choice. If you use a different compiler, update the `Makefile` accordingly.
-- **CMake** *(optional)* — a `CMakeLists.txt` is also provided.
+**Prerequisites:**
+- **Clang for macOS or GCC for Linux** (or another C++ compiler — update the `Makefile` if using a different one)
+- **wxWidgets** — build from source using the [official guide](https://docs.wxwidgets.org/3.3/plat_osx_install.html)
 
-### Build Steps
+**Steps:**
+```bash
+git clone https://github.com/TheProjectDark/wEditor.git
+cd wEditor
+make
+```
 
-1. Clone the repository:
+---
+
+### Windows — MSYS2 + CMake
+
+**Prerequisites:**
+
+1. Install [MSYS2](https://www.msys2.org/) and open the **MSYS2 MinGW 64-bit** shell.
+2. Install the required packages:
    ```bash
-   git clone https://github.com/TheProjectDark/wEditor.git
-   cd wEditor
+   pacman -S mingw-w64-x86_64-gcc mingw-w64-x86_64-cmake mingw-w64-x86_64-wxwidgets3.2-msw
    ```
 
-2. Build with Make:
-   ```bash
-   make
-   ```
+**Steps:**
+```bash
+git clone https://github.com/TheProjectDark/wEditor.git
+cd wEditor
+cmake -B build -G "MinGW Makefiles"
+cmake --build build
+```
 
-   Or with CMake:
-   ```bash
-   cmake -B build
-   cmake --build build
-   ```
-
-3. Run the resulting binary.
+The compiled binary will be in the `build/` directory.
 
 ---
 
@@ -78,8 +96,9 @@ Pre-built binaries are available on the [Releases](https://github.com/TheProject
 wEditor/
 ├── include/weditor/   # Header files
 ├── src/               # Source files
-├── CMakeLists.txt     # CMake build configuration
-├── Makefile           # Make build configuration
+├── assets/            # Pictures for readme
+├── CMakeLists.txt     # CMake build configuration (Windows/cross-platform)
+├── Makefile           # Make build configuration (Linux/macOS)
 ├── app.ico            # Application icon
 └── app.rc             # Windows resource file
 ```
