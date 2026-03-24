@@ -34,7 +34,12 @@ Most editors today are bloated with features you never use, slow to start, or ti
 
 Download pre-built application from the [Releases](https://github.com/TheProjectDark/wEditor/releases) page — no installation needed, just run it.
 
-However, macOS adds all downloaded apps from unknow developers to quarantine, so in order to use the app you need delet quarantine with command ```xattr -d com.apple.quarantine APP PATH```, for example there's the command for Download directroy:
+However, macOS places all apps downloaded from unknown developers into quarantine. To use such an app, you need to remove the quarantine attribute with this Terminal command:
+```
+xattr -d com.apple.quarantine "APP PATH"
+```
+
+For example, here is the command for the Downloads directory:
 ```
 xattr -d com.apple.quarantine  ~/Downloads/wEditor.app
 ```
