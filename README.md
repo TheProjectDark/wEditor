@@ -39,11 +39,11 @@ However, macOS adds all downloaded apps from unknow developers to quarantine, so
 xattr -d com.apple.quarantine  ~/Downloads/wEditor.app
 ```
 
-| Platform   | Architecture |
-|------------|-------------|
-| Linux      | AMD64       |
-| Windows 7+ | AMD64       |
-| macOS      | ARM64 *(macOS 26+ recommended)* |
+| Platform                             | Architecture |
+|--------------------------------------|-------------|
+| Linux (Debian 11+/Ubuntu 22.04+)     | AMD64       |
+| Windows 7+                           | AMD64       |
+| macOS                                | ARM64 *(macOS 26+ recommended)* |
 
 ---
 
