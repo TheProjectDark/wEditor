@@ -16,6 +16,8 @@ class App : public wxApp
         bool OnInit();
 };
 
+wxIMPLEMENT_APP(App);
+
 //main part of the code
 MainFrame::MainFrame(const wxString& title)
     : wxFrame(nullptr, wxID_ANY, title)
@@ -73,8 +75,14 @@ MainFrame::MainFrame(const wxString& title)
     wxButton* open = new wxButton(panel, wxID_ANY, "Open");
 
     //undo and redo buttons (ctrl+z and ctrl+y)
-    wxButton* undo = new wxButton(panel, wxID_ANY, "<-");
-    wxButton* redo = new wxButton(panel, wxID_ANY, "->");
+    wxButton* undo = new wxButton(panel, wxID_ANY, "");
+    wxButton* redo = new wxButton(panel, wxID_ANY, "");
+
+    wxBitmap undoBmp = wxArtProvider::GetBitmap(wxART_UNDO, wxART_BUTTON);
+    wxBitmap redoBmp = wxArtProvider::GetBitmap(wxART_REDO, wxART_BUTTON);
+
+    undo->SetBitmap(undoBmp);
+    redo->SetBitmap(redoBmp);
 
     //enable drag and drop
     DragNDrop* dropTarget = new DragNDrop(this);
@@ -172,8 +180,6 @@ MainFrame::~MainFrame()
     delete currentHighlighter;
     currentHighlighter = nullptr;
 }
-
-wxIMPLEMENT_APP(App);
 
 //adding values to wildcard
 const::wxString MainFrame::wildcard =
@@ -433,12 +439,10 @@ bool IsFileSupported(const wxString& filename) {
         "ttf", "otf", "woff", "woff2", "eot",
         //executables and binaries
         "exe", "dll", "sys", "drv", "bin", "iso", "img", "raw",
-        "msi", "msix", "appx", "apk", "ipa", "dmg",
-        "deb", "rpm", "pkg",
+        "msi", "msix", "appx", "apk", "ipa", "dmg", "so",
+        "deb", "rpm", "pkg", "msi", "app", "macho",
         //virtual machines
-        "vmdk", "vhd", "vhdx", "qcow2",
-        //executables
-        "exe", "msi", "app", "macho", "so", "bin"
+        "vmdk", "vhd", "vhdx", "qcow2"
     };
     return unsupportedExts.find(ext) == unsupportedExts.end();
 }
