@@ -8,6 +8,23 @@
  */
 
 #include <weditor/MainFrame.h>
+#include <weditor/EmbeddedIcons.h>
+#include <wx/mstream.h>
+
+namespace
+{
+wxBitmap LoadToolbarIcon(const unsigned char* data, std::size_t length, const wxArtID& fallbackArtId)
+{
+    wxMemoryInputStream input(data, length);
+    wxImage image(input, wxBITMAP_TYPE_PNG);
+    if (image.IsOk())
+    {
+        return wxBitmap(image);
+    }
+
+    return wxArtProvider::GetBitmap(fallbackArtId, wxART_BUTTON);
+}
+}
 
 //app class to launch this editor
 class App : public wxApp
@@ -73,13 +90,12 @@ MainFrame::MainFrame(const wxString& title)
     wxButton* saveAs = new wxButton(panel, wxID_ANY, "Save as");
     wxButton* save = new wxButton(panel, wxID_ANY, "Save");
     wxButton* open = new wxButton(panel, wxID_ANY, "Open");
-
     //undo and redo buttons (ctrl+z and ctrl+y)
     wxButton* undo = new wxButton(panel, wxID_ANY, "");
     wxButton* redo = new wxButton(panel, wxID_ANY, "");
 
-    wxBitmap undoBmp = wxArtProvider::GetBitmap(wxART_UNDO, wxART_BUTTON);
-    wxBitmap redoBmp = wxArtProvider::GetBitmap(wxART_REDO, wxART_BUTTON);
+    wxBitmap undoBmp = LoadToolbarIcon(EmbeddedIcons::edit_undo_png, EmbeddedIcons::edit_undo_png_len, wxART_UNDO);
+    wxBitmap redoBmp = LoadToolbarIcon(EmbeddedIcons::edit_redo_png, EmbeddedIcons::edit_redo_png_len, wxART_REDO);
 
     undo->SetBitmap(undoBmp);
     redo->SetBitmap(redoBmp);
@@ -195,6 +211,7 @@ const::wxString MainFrame::wildcard =
 //show main frame
 bool App::OnInit() {
     SetExitOnFrameDelete(true);
+    wxInitAllImageHandlers();
     wxConfig::Set(new wxConfig("wEditor"));
 
     MainFrame* mainFrame = new MainFrame("wEditor");
