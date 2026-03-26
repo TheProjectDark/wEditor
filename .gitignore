@@ -10,7 +10,7 @@ out/
 *.so
 *.dll
 *.a
-wEditor
+/wEditor
 
 #cmake
 CMakeCache.txt
