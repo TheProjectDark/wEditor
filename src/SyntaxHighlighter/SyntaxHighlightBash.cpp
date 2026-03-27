@@ -209,6 +209,18 @@ void SyntaxHighlightBash::ApplyHighlight(wxStyledTextCtrl* textCtrl)
             while (i < len && IsIdentChar(text[i])) ++i;
             const std::string word = text.substr(start, i - start);
 
+            //check for function call (lookahead for '(')
+            int j = i;
+            while (j < len && (text[j] == ' ' || text[j] == '\t')) ++j;
+            if (j < len && text[j] == '(')
+            {
+                if (s_keywords.count(word))
+                    setStyle(start, i, STYLE_KEYWORD);
+                else
+                    setStyle(start, i, STYLE_FUNCTION);
+                continue;
+            }
+
             if      (s_keywords.count(word))   setStyle(start, i, STYLE_KEYWORD);
             else if (s_builtins.count(word))   setStyle(start, i, STYLE_FUNCTION);
             else if (s_variables.count(word))  setStyle(start, i, STYLE_NAMESPACE);
