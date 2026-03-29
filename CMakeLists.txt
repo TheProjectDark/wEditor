@@ -25,6 +25,7 @@ set(SOURCES
     src/SyntaxHighlighter/SyntaxHighlightJava.cpp
     src/SyntaxHighlighter/SyntaxHighlightPython.cpp
     src/SyntaxHighlighter/SyntaxHighlightBash.cpp
+    src/SyntaxHighlighter/SyntaxHighlightBatch.cpp
     src/SyntaxHighlighter/SyntaxHighlightAssembly.cpp
     src/SyntaxHighlighter/SyntaxHighlightSQL.cpp
     src/SyntaxHighlighter/Text.cpp

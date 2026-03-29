@@ -206,6 +206,7 @@ const::wxString MainFrame::wildcard =
     "Java files (*.java)|*.java|"
     "Python files (*.py)|*.py|"
     "Bash files (*.sh)|*sh|"
+    "Batch files (*.bat;*.cmd)|*.bat;*.cmd|"
     "Assembly files (*.asm;*.s)|*.asm;*.s|"
     "SQL files (*.sql)|*.sql";
 
@@ -332,6 +333,8 @@ wxString MainFrame::GetLanguageForExtension(const wxString& filename) const {
         return "Python";
     } else if (ext == "sh") {
         return "Bash";
+    } else if (ext == "bat" || ext == "cmd") {
+        return "Batch";
     } else if (ext == "asm" || ext == "s") {
         return "Assembly";
     } else if (ext == "sql") {
