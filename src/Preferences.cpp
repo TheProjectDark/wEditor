@@ -15,7 +15,7 @@ PreferencesFrame::PreferencesFrame(const wxString& title) {
     wxPanel* panel = new wxPanel(this);
     //autosave choice
     wxStaticText* autosaveLabel = new wxStaticText(panel, wxID_ANY, "Autosave:");
-    wxChoice* autosaveToggle = new wxChoice(panel, wxID_ANY);
+    autosaveToggle = new wxChoice(panel, wxID_ANY);
     autosaveToggle->Append("On");
     autosaveToggle->Append("Off");
     wxString autosaveValue = wxConfig::Get()->Read("Preferences/Autosave", "On");
@@ -27,7 +27,7 @@ PreferencesFrame::PreferencesFrame(const wxString& title) {
 
     //open last file on startup choice
     wxStaticText* openLastFileLabel = new wxStaticText(panel, wxID_ANY, "Open last file on startup:");
-    wxChoice* openLastFileToggle = new wxChoice(panel, wxID_ANY);
+    openLastFileToggle = new wxChoice(panel, wxID_ANY);
     openLastFileToggle->Append("On");
     openLastFileToggle->Append("Off");
     wxString openLastFileValue = wxConfig::Get()->Read("Preferences/OpenLastFile", "On");
@@ -36,6 +36,10 @@ PreferencesFrame::PreferencesFrame(const wxString& title) {
         wxConfig::Get()->Write("Preferences/OpenLastFile", event.GetString());
         wxConfig::Get()->Flush();
     });
+
+    //restere default button
+    wxButton* restoreDefault = new wxButton(panel, wxID_ANY, "Restore by default");
+    restoreDefault->Bind(wxEVT_BUTTON, &PreferencesFrame::OnRestoreDefault, this);
 
     //caching color to avoid repeated ThemeSettings calls
     wxColour darkBackground = ThemeSettings::GetBackgroundColour();
@@ -55,6 +59,8 @@ PreferencesFrame::PreferencesFrame(const wxString& title) {
     openLastFileLabel->SetForegroundColour(darkText);
     openLastFileToggle->SetBackgroundColour(buttonBg);
     openLastFileToggle->SetForegroundColour(buttonFg);
+    restoreDefault->SetBackgroundColour(buttonBg);
+    restoreDefault->SetForegroundColour(buttonFg);
     //setting min sizes up
     autosaveLabel->SetMinSize(wxSize(70, -1));
     autosaveToggle->SetMinSize(wxSize(100, -1));
@@ -62,7 +68,7 @@ PreferencesFrame::PreferencesFrame(const wxString& title) {
     openLastFileToggle->SetMinSize(wxSize(100, -1));
 
     //setup sizers
-    wxFlexGridSizer* gridSizer = new wxFlexGridSizer(2, 2, 10, 10); // rows, cols, vgap, hgap
+    wxFlexGridSizer* gridSizer = new wxFlexGridSizer(3, 2, 10, 10); // rows, cols, vgap, hgap
     gridSizer->AddGrowableCol(0);
 
     gridSizer->Add(autosaveLabel, 0, wxALIGN_CENTER_VERTICAL);
@@ -71,8 +77,54 @@ PreferencesFrame::PreferencesFrame(const wxString& title) {
     gridSizer->Add(openLastFileLabel, 0, wxALIGN_CENTER_VERTICAL);
     gridSizer->Add(openLastFileToggle, 0, wxALIGN_CENTER_VERTICAL);
 
+    gridSizer->Add(restoreDefault, 0, wxALIGN_CENTER_VERTICAL);
+
     wxBoxSizer* mainSizer = new wxBoxSizer(wxVERTICAL);
     mainSizer->Add(gridSizer, 0, wxALL, 10);
     panel->SetSizer(mainSizer);
     panel->Layout();
+}
+
+void PreferencesFrame::OnRestoreDefault(wxCommandEvent& event) {
+    const int result = wxMessageBox(
+        "This action will reset all saved application settings to their default values. Continue?",
+        "Reset settings",
+        wxYES_NO | wxNO_DEFAULT | wxICON_WARNING,
+        this
+    );
+
+    if (result != wxYES) {
+        return;
+    }
+
+    wxConfigBase* config = wxConfigBase::Get();
+    if (config == nullptr) {
+        wxMessageBox(
+            "Failed to access the application configuration.",
+            "Reset settings",
+            wxOK | wxICON_ERROR,
+            this
+        );
+        return;
+    }
+
+    config->DeleteAll();
+    config->Write("Preferences/Autosave", "On");
+    config->Write("Preferences/OpenLastFile", "On");
+    config->Flush();
+
+    if (autosaveToggle != nullptr) {
+        autosaveToggle->SetStringSelection("On");
+    }
+
+    if (openLastFileToggle != nullptr) {
+        openLastFileToggle->SetStringSelection("On");
+    }
+
+    wxMessageBox(
+        "The application settings were successfully reset to default values.",
+        "Reset settings",
+        wxOK | wxICON_INFORMATION,
+        this
+    );
 }

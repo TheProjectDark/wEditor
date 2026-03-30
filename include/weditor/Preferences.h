@@ -16,4 +16,9 @@
 class PreferencesFrame : public wxFrame {
     public:
         PreferencesFrame(const wxString& title);
+        void OnRestoreDefault(wxCommandEvent& event);
+
+    private:
+        wxChoice* autosaveToggle = nullptr;
+        wxChoice* openLastFileToggle = nullptr;
 };
