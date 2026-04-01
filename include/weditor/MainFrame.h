@@ -55,6 +55,7 @@ class MainFrame : public wxFrame
         void OnText(wxCommandEvent& event);
         void OnCharAdded(wxStyledTextEvent& event);
         void OnLanguageChange(wxCommandEvent& event);
+        void UpdateFrameTitle();
         void HighlightSyntax();
         wxString GetLanguageForExtension(const wxString& filename) const;
         void UpdateLineNumberMargin();

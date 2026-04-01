@@ -227,6 +227,18 @@ bool App::OnInit() {
     return true;
 }
 
+void MainFrame::UpdateFrameTitle()
+{
+    if (currentFilePath.IsEmpty())
+    {
+        SetTitle("wEditor");
+        return;
+    }
+
+    SetTitle("wEditor - " + currentFilePath);
+}
+
+
 //load file function to prevent code duplication in open file and restore last file functions
 void MainFrame::LoadFile(const wxString& path) {
     wxFile file;
@@ -243,6 +255,7 @@ void MainFrame::LoadFile(const wxString& path) {
     textCtrl->SetValue(text);
     textCtrl->Refresh();
     currentFilePath = path;
+    UpdateFrameTitle();
     //applying syntax highlighting according to file type
     languageChoice->SetStringSelection(GetLanguageForExtension(path));
 
@@ -364,6 +377,7 @@ void MainFrame::OnNewFile(wxCommandEvent& event)
     textCtrl->Clear();
     textCtrl->SetValue("");
     currentFilePath.Clear();
+    UpdateFrameTitle();
     languageChoice->SetSelection(0);
 
     delete currentHighlighter;
@@ -397,6 +411,7 @@ void MainFrame::OnSaveAs(wxCommandEvent& event)
         return;
 
     currentFilePath = saveFileDialog.GetPath();
+    UpdateFrameTitle();
     OnSave(event);
     wxConfigBase::Get()->Write("Session/LastFile", currentFilePath);
     wxConfigBase::Get()->Flush();
@@ -408,6 +423,7 @@ void MainFrame::OnSave(wxCommandEvent& event)
     wxString path;
     if (!currentFilePath.IsEmpty()) {
         path = currentFilePath;
+        UpdateFrameTitle();
     } else {
         wxFileDialog saveFileDialog(
             this,
