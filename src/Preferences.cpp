@@ -109,16 +109,16 @@ void PreferencesFrame::OnRestoreDefault(wxCommandEvent& event) {
     }
 
     config->DeleteAll();
-    config->Write("Preferences/Autosave", "On");
-    config->Write("Preferences/OpenLastFile", "On");
+    config->Write("Preferences/Autosave", "Off");
+    config->Write("Preferences/OpenLastFile", "Off");
     config->Flush();
 
     if (autosaveToggle != nullptr) {
-        autosaveToggle->SetStringSelection("On");
+        autosaveToggle->SetStringSelection("Off");
     }
 
     if (openLastFileToggle != nullptr) {
-        openLastFileToggle->SetStringSelection("On");
+        openLastFileToggle->SetStringSelection("Off");
     }
 
     wxMessageBox(
