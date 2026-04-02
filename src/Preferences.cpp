@@ -20,10 +20,6 @@ PreferencesFrame::PreferencesFrame(const wxString& title) {
     autosaveToggle->Append("Off");
     wxString autosaveValue = wxConfig::Get()->Read("Preferences/Autosave", "On");
     autosaveToggle->SetStringSelection(autosaveValue);
-    autosaveToggle->Bind(wxEVT_CHOICE, [](wxCommandEvent& event) {
-        wxConfig::Get()->Write("Preferences/Autosave", event.GetString());
-        wxConfig::Get()->Flush();
-    });
 
     //open last file on startup choice
     wxStaticText* openLastFileLabel = new wxStaticText(panel, wxID_ANY, "Open last file on startup:");
@@ -32,14 +28,18 @@ PreferencesFrame::PreferencesFrame(const wxString& title) {
     openLastFileToggle->Append("Off");
     wxString openLastFileValue = wxConfig::Get()->Read("Preferences/OpenLastFile", "On");
     openLastFileToggle->SetStringSelection(openLastFileValue);
-    openLastFileToggle->Bind(wxEVT_CHOICE, [](wxCommandEvent& event) {
-        wxConfig::Get()->Write("Preferences/OpenLastFile", event.GetString());
-        wxConfig::Get()->Flush();
-    });
 
     //restere default button
     wxButton* restoreDefault = new wxButton(panel, wxID_ANY, "Restore by default");
     restoreDefault->Bind(wxEVT_BUTTON, &PreferencesFrame::OnRestoreDefault, this);
+
+    //apply button, ok button and cancel button
+    wxButton* applyButton = new wxButton(panel, wxID_APPLY, "Apply");
+    wxButton* okButton = new wxButton(panel, wxID_OK, "OK");
+    wxButton* cancelButton = new wxButton(panel, wxID_CANCEL, "Cancel");
+    applyButton->Bind(wxEVT_BUTTON, &PreferencesFrame::OnApply, this);
+    okButton->Bind(wxEVT_BUTTON, &PreferencesFrame::OnOk, this);
+    cancelButton->Bind(wxEVT_BUTTON, &PreferencesFrame::OnCancel, this);
 
     //caching color to avoid repeated ThemeSettings calls
     wxColour darkBackground = ThemeSettings::GetBackgroundColour();
@@ -61,6 +61,12 @@ PreferencesFrame::PreferencesFrame(const wxString& title) {
     openLastFileToggle->SetForegroundColour(buttonFg);
     restoreDefault->SetBackgroundColour(buttonBg);
     restoreDefault->SetForegroundColour(buttonFg);
+    applyButton->SetBackgroundColour(buttonBg);
+    applyButton->SetForegroundColour(buttonFg);
+    okButton->SetBackgroundColour(buttonBg);
+    okButton->SetForegroundColour(buttonFg);
+    cancelButton->SetBackgroundColour(buttonBg);
+    cancelButton->SetForegroundColour(buttonFg);
     //setting min sizes up
     autosaveLabel->SetMinSize(wxSize(70, -1));
     autosaveToggle->SetMinSize(wxSize(100, -1));
@@ -79,10 +85,52 @@ PreferencesFrame::PreferencesFrame(const wxString& title) {
 
     gridSizer->Add(restoreDefault, 0, wxALIGN_CENTER_VERTICAL);
 
+    wxBoxSizer* buttonSizer = new wxBoxSizer(wxHORIZONTAL);
+    buttonSizer->AddStretchSpacer();
+    buttonSizer->Add(applyButton, 0, wxRIGHT, 5);
+    buttonSizer->Add(okButton, 0, wxRIGHT, 5);
+    buttonSizer->Add(cancelButton, 0);
+
     wxBoxSizer* mainSizer = new wxBoxSizer(wxVERTICAL);
     mainSizer->Add(gridSizer, 0, wxALL, 10);
+    mainSizer->AddStretchSpacer();
+    mainSizer->Add(buttonSizer, 0, wxEXPAND | wxLEFT | wxRIGHT | wxBOTTOM, 10);
     panel->SetSizer(mainSizer);
     panel->Layout();
+}
+
+bool PreferencesFrame::SavePreferences() {
+    wxConfigBase* config = wxConfigBase::Get();
+    if (config == nullptr) {
+        wxMessageBox(
+            "Failed to access the application configuration.",
+            "Preferences",
+            wxOK | wxICON_ERROR,
+            this
+        );
+        return false;
+    }
+
+    config->Write("Preferences/Autosave", autosaveToggle->GetStringSelection());
+    config->Write("Preferences/OpenLastFile", openLastFileToggle->GetStringSelection());
+    config->Flush();
+    return true;
+}
+
+void PreferencesFrame::OnApply(wxCommandEvent& event) {
+    if (SavePreferences()) {
+        Close();
+    }
+}
+
+void PreferencesFrame::OnOk(wxCommandEvent& event) {
+    if (SavePreferences()) {
+        Close();
+    }
+}
+
+void PreferencesFrame::OnCancel(wxCommandEvent& event) {
+    Close();
 }
 
 void PreferencesFrame::OnRestoreDefault(wxCommandEvent& event) {
@@ -97,22 +145,6 @@ void PreferencesFrame::OnRestoreDefault(wxCommandEvent& event) {
         return;
     }
 
-    wxConfigBase* config = wxConfigBase::Get();
-    if (config == nullptr) {
-        wxMessageBox(
-            "Failed to access the application configuration.",
-            "Reset settings",
-            wxOK | wxICON_ERROR,
-            this
-        );
-        return;
-    }
-
-    config->DeleteAll();
-    config->Write("Preferences/Autosave", "Off");
-    config->Write("Preferences/OpenLastFile", "Off");
-    config->Flush();
-
     if (autosaveToggle != nullptr) {
         autosaveToggle->SetStringSelection("Off");
     }
@@ -122,7 +154,7 @@ void PreferencesFrame::OnRestoreDefault(wxCommandEvent& event) {
     }
 
     wxMessageBox(
-        "The application settings were successfully reset to default values.",
+        "Default values are set in the window. Click Apply or OK to save them.",
         "Reset settings",
         wxOK | wxICON_INFORMATION,
         this

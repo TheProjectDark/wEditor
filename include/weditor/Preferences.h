@@ -16,6 +16,10 @@
 class PreferencesFrame : public wxFrame {
     public:
         PreferencesFrame(const wxString& title);
+        bool SavePreferences();
+        void OnApply(wxCommandEvent& event);
+        void OnOk(wxCommandEvent& event);
+        void OnCancel(wxCommandEvent& event);
         void OnRestoreDefault(wxCommandEvent& event);
 
     private:
