@@ -30,6 +30,7 @@ class MainFrame : public wxFrame
         void OpenFile(const wxString& path);
         void LoadFile(const wxString& path);
         void RestoreLastFile();
+        void RestoreWindowState();
 
     private:
         wxStyledTextCtrl* textCtrl;
@@ -43,6 +44,9 @@ class MainFrame : public wxFrame
         //wildcard
         static const wxString wildcard;
 
+        bool ShouldSaveWindowState() const;
+        void SaveWindowState() const;
+        void OnClose(wxCloseEvent& event);
         void OnExit(wxCommandEvent& event);
         void OnAbout(wxCommandEvent& event);
         void OnNewFile(wxCommandEvent& event);

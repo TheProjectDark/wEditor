@@ -25,4 +25,5 @@ class PreferencesFrame : public wxFrame {
     private:
         wxChoice* autosaveToggle = nullptr;
         wxChoice* openLastFileToggle = nullptr;
+        wxChoice* saveWindowStateToggle = nullptr;
 };

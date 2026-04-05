@@ -188,6 +188,7 @@ MainFrame::MainFrame(const wxString& title)
     Bind(wxEVT_MENU, &MainFrame::OnExit, this, wxID_EXIT);
     Bind(wxEVT_MENU, &MainFrame::OnAbout, this, wxID_ABOUT);
     Bind(wxEVT_STC_CHANGE, &MainFrame::OnText, this);
+    Bind(wxEVT_CLOSE_WINDOW, &MainFrame::OnClose, this);
 
 }
 
@@ -218,6 +219,7 @@ bool App::OnInit() {
 
     MainFrame* mainFrame = new MainFrame("wEditor");
     mainFrame->SetClientSize(mainFrame->FromDIP(wxSize(800, 600)));
+    mainFrame->RestoreWindowState();
     mainFrame->Show();
     mainFrame->RestoreLastFile(); //restore last opened file on startup
 
@@ -277,6 +279,102 @@ void MainFrame::RestoreLastFile()
             OpenFile(lastFilePath);
         }
     }
+}
+
+bool MainFrame::ShouldSaveWindowState() const
+{
+    wxConfigBase* config = wxConfigBase::Get();
+    if (config == nullptr)
+    {
+        return false;
+    }
+
+    return config->Read("Preferences/SaveWindowState", "On") == "On";
+}
+
+void MainFrame::RestoreWindowState()
+{
+    if (!ShouldSaveWindowState())
+    {
+        return;
+    }
+
+    wxConfigBase* config = wxConfigBase::Get();
+    if (config == nullptr)
+    {
+        return;
+    }
+
+    long width = 0;
+    long height = 0;
+
+    if (!config->Read("WindowState/Width", &width) || !config->Read("WindowState/Height", &height))
+    {
+        return;
+    }
+
+    if (width <= 0 || height <= 0)
+    {
+        return;
+    }
+
+    long x = wxDefaultCoord;
+    long y = wxDefaultCoord;
+    config->Read("WindowState/X", &x, static_cast<long>(wxDefaultCoord));
+    config->Read("WindowState/Y", &y, static_cast<long>(wxDefaultCoord));
+
+    const wxSize restoredSize(static_cast<int>(width), static_cast<int>(height));
+    if (x != wxDefaultCoord && y != wxDefaultCoord)
+    {
+        SetSize(static_cast<int>(x), static_cast<int>(y), restoredSize.GetWidth(), restoredSize.GetHeight());
+    }
+    else
+    {
+        SetSize(restoredSize);
+    }
+
+    long wasFullScreen = 0;
+    long wasMaximized = 0;
+    config->Read("WindowState/IsFullScreen", &wasFullScreen, 0);
+    config->Read("WindowState/IsMaximized", &wasMaximized, 0);
+
+    if (wasFullScreen != 0)
+    {
+        ShowFullScreen(true);
+    }
+    else if (wasMaximized != 0)
+    {
+        Maximize(true);
+    }
+}
+
+void MainFrame::SaveWindowState() const
+{
+    if (!ShouldSaveWindowState())
+    {
+        return;
+    }
+
+    wxConfigBase* config = wxConfigBase::Get();
+    if (config == nullptr)
+    {
+        return;
+    }
+
+    const bool isFullScreen = IsFullScreen();
+    const bool isMaximized = !isFullScreen && IsMaximized();
+
+    if (!isFullScreen && !isMaximized)
+    {
+        const wxRect frameRect = GetRect();
+        config->Write("WindowState/X", static_cast<long>(frameRect.GetX()));
+        config->Write("WindowState/Y", static_cast<long>(frameRect.GetY()));
+        config->Write("WindowState/Width", static_cast<long>(frameRect.GetWidth()));
+        config->Write("WindowState/Height", static_cast<long>(frameRect.GetHeight()));
+    }
+
+    config->Write("WindowState/IsFullScreen", isFullScreen ? 1L : 0L);
+    config->Write("WindowState/IsMaximized", isMaximized ? 1L : 0L);
 }
 
 //update line number margin width according to line count
@@ -568,20 +666,18 @@ void MainFrame::OnAbout(wxCommandEvent& event)
                  "wEditor beta v3.1", wxOK | wxICON_INFORMATION);
 }
 
-//close app
-void MainFrame::OnExit(wxCommandEvent& event)
+void MainFrame::OnClose(wxCloseEvent& event)
 {
-    //save last opened file path to config
-    wxConfigBase::Get()->Write("Session/LastFile", currentFilePath);
-    wxConfigBase::Get()->Flush();
-
-    //auto save current file on exit if enabled in preferences
     wxConfigBase* config = wxConfig::Get();
-    wxString autosaveValue = config->Read("Preferences/Autosave", "On");
-
-    if (autosaveValue == "On")
+    if (config != nullptr)
     {
-        if (!currentFilePath.IsEmpty())
+        config->Write("Session/LastFile", currentFilePath);
+        SaveWindowState();
+
+        //auto save current file on exit if enabled in preferences
+        wxString autosaveValue = config->Read("Preferences/Autosave", "On");
+
+        if (autosaveValue == "On" && !currentFilePath.IsEmpty())
         {
             wxString content = textCtrl->GetValue();
             wxFile file;
@@ -592,7 +688,15 @@ void MainFrame::OnExit(wxCommandEvent& event)
                 file.Close();
             }
         }
+
+        config->Flush();
     }
 
+    event.Skip();
+}
+
+//close app
+void MainFrame::OnExit(wxCommandEvent& event)
+{
     Close(true);
 }

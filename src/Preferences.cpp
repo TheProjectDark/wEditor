@@ -29,6 +29,15 @@ PreferencesFrame::PreferencesFrame(const wxString& title) {
     wxString openLastFileValue = wxConfig::Get()->Read("Preferences/OpenLastFile", "On");
     openLastFileToggle->SetStringSelection(openLastFileValue);
 
+    //save MainFrame size and position toggle
+    wxStaticText* saveWindowStateLabel = new wxStaticText(panel, wxID_ANY, "Save window size and position:");
+    saveWindowStateToggle = new wxChoice(panel, wxID_ANY);
+    saveWindowStateToggle->Append("On");
+    saveWindowStateToggle->Append("Off");
+    wxString saveWindowStateValue = wxConfig::Get()->Read("Preferences/SaveWindowState", "On");
+    saveWindowStateToggle->SetStringSelection(saveWindowStateValue);
+
+
     //restere default button
     wxButton* restoreDefault = new wxButton(panel, wxID_ANY, "Restore by default");
     restoreDefault->Bind(wxEVT_BUTTON, &PreferencesFrame::OnRestoreDefault, this);
@@ -59,6 +68,10 @@ PreferencesFrame::PreferencesFrame(const wxString& title) {
     openLastFileLabel->SetForegroundColour(darkText);
     openLastFileToggle->SetBackgroundColour(buttonBg);
     openLastFileToggle->SetForegroundColour(buttonFg);
+    saveWindowStateLabel->SetBackgroundColour(darkBackground);
+    saveWindowStateLabel->SetForegroundColour(darkText);
+    saveWindowStateToggle->SetBackgroundColour(buttonBg);
+    saveWindowStateToggle->SetForegroundColour(buttonFg);
     restoreDefault->SetBackgroundColour(buttonBg);
     restoreDefault->SetForegroundColour(buttonFg);
     applyButton->SetBackgroundColour(buttonBg);
@@ -72,9 +85,11 @@ PreferencesFrame::PreferencesFrame(const wxString& title) {
     autosaveToggle->SetMinSize(wxSize(100, -1));
     openLastFileLabel->SetMinSize(wxSize(150, -1));
     openLastFileToggle->SetMinSize(wxSize(100, -1));
+    saveWindowStateLabel->SetMinSize(wxSize(200, -1));
+    saveWindowStateToggle->SetMinSize(wxSize(100, -1));
 
     //setup sizers
-    wxFlexGridSizer* gridSizer = new wxFlexGridSizer(3, 2, 10, 10); // rows, cols, vgap, hgap
+    wxFlexGridSizer* gridSizer = new wxFlexGridSizer(4, 2, 10, 10); // rows, cols, vgap, hgap
     gridSizer->AddGrowableCol(0);
 
     gridSizer->Add(autosaveLabel, 0, wxALIGN_CENTER_VERTICAL);
@@ -82,6 +97,9 @@ PreferencesFrame::PreferencesFrame(const wxString& title) {
 
     gridSizer->Add(openLastFileLabel, 0, wxALIGN_CENTER_VERTICAL);
     gridSizer->Add(openLastFileToggle, 0, wxALIGN_CENTER_VERTICAL);
+
+    gridSizer->Add(saveWindowStateLabel, 0, wxALIGN_CENTER_VERTICAL);
+    gridSizer->Add(saveWindowStateToggle, 0, wxALIGN_CENTER_VERTICAL);
 
     gridSizer->Add(restoreDefault, 0, wxALIGN_CENTER_VERTICAL);
 
@@ -113,6 +131,7 @@ bool PreferencesFrame::SavePreferences() {
 
     config->Write("Preferences/Autosave", autosaveToggle->GetStringSelection());
     config->Write("Preferences/OpenLastFile", openLastFileToggle->GetStringSelection());
+    config->Write("Preferences/SaveWindowState", saveWindowStateToggle->GetStringSelection());
     config->Flush();
     return true;
 }
@@ -151,6 +170,10 @@ void PreferencesFrame::OnRestoreDefault(wxCommandEvent& event) {
 
     if (openLastFileToggle != nullptr) {
         openLastFileToggle->SetStringSelection("Off");
+    }
+
+    if (saveWindowStateToggle != nullptr) {
+        saveWindowStateToggle->SetStringSelection("Off");
     }
 
     wxMessageBox(
