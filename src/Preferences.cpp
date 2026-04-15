@@ -39,7 +39,7 @@ PreferencesFrame::PreferencesFrame(const wxString& title) {
 
 
     //restere default button
-    wxButton* restoreDefault = new wxButton(panel, wxID_ANY, "Restore by default");
+    wxButton* restoreDefault = new wxButton(panel, wxID_ANY, "Restore defaults");
     restoreDefault->Bind(wxEVT_BUTTON, &PreferencesFrame::OnRestoreDefault, this);
 
     //apply button, ok button and cancel button
@@ -136,23 +136,23 @@ bool PreferencesFrame::SavePreferences() {
     return true;
 }
 
-void PreferencesFrame::OnApply(wxCommandEvent& event) {
+void PreferencesFrame::OnApply(wxCommandEvent&) {
     if (SavePreferences()) {
         Close();
     }
 }
 
-void PreferencesFrame::OnOk(wxCommandEvent& event) {
+void PreferencesFrame::OnOk(wxCommandEvent&) {
     if (SavePreferences()) {
         Close();
     }
 }
 
-void PreferencesFrame::OnCancel(wxCommandEvent& event) {
+void PreferencesFrame::OnCancel(wxCommandEvent&) {
     Close();
 }
 
-void PreferencesFrame::OnRestoreDefault(wxCommandEvent& event) {
+void PreferencesFrame::OnRestoreDefault(wxCommandEvent&) {
     const int result = wxMessageBox(
         "This action will reset all saved application settings to their default values. Continue?",
         "Reset settings",

@@ -240,6 +240,93 @@ void MainFrame::UpdateFrameTitle()
     SetTitle("wEditor - " + currentFilePath);
 }
 
+bool MainFrame::SaveToPath(const wxString& path, bool showSuccessMessage)
+{
+    wxFile file;
+    if (!file.Create(path, true))
+    {
+        wxMessageBox(wxString::Format("Failed to save file: %s", path), "wEditor", wxOK | wxICON_ERROR);
+        return false;
+    }
+
+    if (!file.Write(textCtrl->GetValue()))
+    {
+        file.Close();
+        wxMessageBox(wxString::Format("Failed to save file: %s", path), "wEditor", wxOK | wxICON_ERROR);
+        return false;
+    }
+
+    file.Close();
+    currentFilePath = path;
+    UpdateFrameTitle();
+    textCtrl->SetSavePoint();
+
+    wxConfigBase* config = wxConfigBase::Get();
+    if (config != nullptr)
+    {
+        config->Write("Session/LastFile", currentFilePath);
+        config->Flush();
+    }
+
+    if (showSuccessMessage)
+    {
+        wxMessageBox("File saved successfully", "wEditor", wxOK | wxICON_INFORMATION);
+    }
+
+    return true;
+}
+
+bool MainFrame::SaveCurrentDocument(bool showSuccessMessage)
+{
+    if (!currentFilePath.IsEmpty())
+    {
+        return SaveToPath(currentFilePath, showSuccessMessage);
+    }
+
+    wxFileDialog saveFileDialog(
+        this,
+        "Save file",
+        "",
+        "",
+        wildcard,
+        wxFD_SAVE | wxFD_OVERWRITE_PROMPT
+    );
+
+    if (saveFileDialog.ShowModal() == wxID_CANCEL)
+    {
+        return false;
+    }
+
+    return SaveToPath(saveFileDialog.GetPath(), showSuccessMessage);
+}
+
+bool MainFrame::PromptToSaveChanges()
+{
+    if (textCtrl == nullptr || !textCtrl->GetModify())
+    {
+        return true;
+    }
+
+    const wxString documentName = currentFilePath.IsEmpty() ? "Untitled" : currentFilePath;
+    const int result = wxMessageBox(
+        wxString::Format("Save changes to \"%s\" before continuing?", documentName),
+        "Unsaved changes",
+        wxYES_NO | wxCANCEL | wxCANCEL_DEFAULT | wxICON_WARNING,
+        this
+    );
+
+    if (result == wxCANCEL)
+    {
+        return false;
+    }
+
+    if (result == wxYES)
+    {
+        return SaveCurrentDocument(false);
+    }
+
+    return true;
+}
 
 //load file function to prevent code duplication in open file and restore last file functions
 void MainFrame::LoadFile(const wxString& path) {
@@ -266,6 +353,9 @@ void MainFrame::LoadFile(const wxString& path) {
     currentLanguage = languageChoice->GetStringSelection();
     currentHighlighter = HighlighterFactory::CreateHighlighter(currentLanguage);
     HighlightSyntax();
+    textCtrl->EmptyUndoBuffer();
+    textCtrl->SetSavePoint();
+    UpdateLineNumberMargin();
 }
 
 //restore last opened file on startup if enabled in preferences
@@ -387,11 +477,11 @@ void MainFrame::UpdateLineNumberMargin()
 }
 
 //syntax highlight functions
-void MainFrame::OnText(wxCommandEvent& event) {
+void MainFrame::OnText(wxCommandEvent&) {
     UpdateLineNumberMargin();
     highlightTimer.StartOnce(150);
 }
-void MainFrame::OnLanguageChange(wxCommandEvent& event) {
+void MainFrame::OnLanguageChange(wxCommandEvent&) {
     currentLanguage = languageChoice->GetStringSelection();
     delete currentHighlighter;
     currentHighlighter = nullptr;
@@ -456,24 +546,44 @@ wxString MainFrame::GetLanguageForExtension(const wxString& filename) const {
 }
 
 //new file function
-void MainFrame::OnNewFile(wxCommandEvent& event) 
+void MainFrame::OnNewFile(wxCommandEvent&) 
 {
-    //autosave before cleaning textCtrl
-    if (!currentFilePath.IsEmpty())
+    if (!PromptToSaveChanges())
     {
-        wxString content = textCtrl->GetValue();
-        wxFile file;
-        if (file.Open(currentFilePath, wxFile::write))
-        {
-            file.Write(content);
-            file.Close();
-        }
+        return;
     }
 
-    wxString prevFilePath = currentFilePath;
+    const wxString restoreText = textCtrl->GetValue();
+    const wxString restoreFilePath = currentFilePath;
+    const wxString restoreLanguage = languageChoice->GetStringSelection();
+    const bool restoreModified = textCtrl->GetModify();
 
-    textCtrl->Clear();
+    auto restoreDocument = [this, &restoreText, &restoreFilePath, &restoreLanguage, restoreModified]()
+    {
+        textCtrl->SetValue(restoreText);
+        currentFilePath = restoreFilePath;
+        UpdateFrameTitle();
+
+        languageChoice->SetStringSelection(restoreLanguage);
+
+        delete currentHighlighter;
+        currentHighlighter = nullptr;
+        currentLanguage = languageChoice->GetStringSelection();
+        currentHighlighter = HighlighterFactory::CreateHighlighter(currentLanguage);
+
+        HighlightSyntax();
+        UpdateLineNumberMargin();
+        textCtrl->EmptyUndoBuffer();
+
+        if (!restoreModified)
+        {
+            textCtrl->SetSavePoint();
+        }
+    };
+
     textCtrl->SetValue("");
+    textCtrl->EmptyUndoBuffer();
+    textCtrl->SetSavePoint();
     currentFilePath.Clear();
     UpdateFrameTitle();
     languageChoice->SetSelection(0);
@@ -483,19 +593,16 @@ void MainFrame::OnNewFile(wxCommandEvent& event)
     currentHighlighter = HighlighterFactory::CreateHighlighter("Text");
 
     HighlightSyntax();
+    UpdateLineNumberMargin();
 
-    wxConfigBase::Get()->DeleteEntry("Session/LastFile");
-    wxConfigBase::Get()->Flush();
-
-    OnSave(event);
-    if (currentFilePath.IsEmpty() && !prevFilePath.IsEmpty())
+    if (!SaveCurrentDocument())
     {
-        OpenFile(prevFilePath);
+        restoreDocument();
     }
 }
 
 //save as function
-void MainFrame::OnSaveAs(wxCommandEvent& event)
+void MainFrame::OnSaveAs(wxCommandEvent&)
 {    wxFileDialog saveFileDialog(
         this,
         "Save file",
@@ -508,51 +615,13 @@ void MainFrame::OnSaveAs(wxCommandEvent& event)
     if (saveFileDialog.ShowModal() == wxID_CANCEL)
         return;
 
-    currentFilePath = saveFileDialog.GetPath();
-    UpdateFrameTitle();
-    OnSave(event);
-    wxConfigBase::Get()->Write("Session/LastFile", currentFilePath);
-    wxConfigBase::Get()->Flush();
+    SaveToPath(saveFileDialog.GetPath());
 }
 
 //save file function
-void MainFrame::OnSave(wxCommandEvent& event)
+void MainFrame::OnSave(wxCommandEvent&)
 {
-    wxString path;
-    if (!currentFilePath.IsEmpty()) {
-        path = currentFilePath;
-        UpdateFrameTitle();
-    } else {
-        wxFileDialog saveFileDialog(
-            this,
-            "Save file",
-            "",
-            "",
-            wildcard,
-            wxFD_SAVE | wxFD_OVERWRITE_PROMPT
-        );
-
-        if (saveFileDialog.ShowModal() == wxID_CANCEL)
-            return;
-
-        path = saveFileDialog.GetPath();
-        currentFilePath = path;  // set current file path
-        wxConfigBase::Get()->Write("Session/LastFile", currentFilePath);
-        wxConfigBase::Get()->Flush();
-    }
-
-    wxString content = textCtrl->GetValue();
-    wxFile file;
-    if (file.Open(path, wxFile::write))
-    {
-        file.Write(content);
-        file.Close();
-        wxMessageBox("File saved successfully", "wEditor", wxOK | wxICON_INFORMATION);
-    }
-    else
-    {
-        wxMessageBox("File saving error", "wEditor", wxOK | wxICON_ERROR);
-    }
+    SaveCurrentDocument();
 }
 
 //check unsupported file formats
@@ -596,11 +665,17 @@ void MainFrame::OpenFile(const wxString& path)
         wxMessageBox("wEditor does not support this file format. Please select a text or code file.", "Unsupported Format", wxOK | wxICON_WARNING);
         return;
     }
+
+    if (!PromptToSaveChanges())
+    {
+        return;
+    }
+
     LoadFile(fullPath);
 }
 
 //open file dialog
-void MainFrame::OnOpen(wxCommandEvent& event)
+void MainFrame::OnOpen(wxCommandEvent&)
 {
     wxFileDialog openFileDialog(
         this,
@@ -616,22 +691,16 @@ void MainFrame::OnOpen(wxCommandEvent& event)
     if (openFileDialog.ShowModal() == wxID_CANCEL)
         return;
 
-    wxString path = openFileDialog.GetPath();
-    if (!IsFileSupported(path)) { //check if file is supported
-        wxMessageBox("wEditor does not support this file format. Please select a text or code file.", "Unsupported Format", wxOK | wxICON_WARNING);
-        return;
-    }
-
-    LoadFile(path);
+    OpenFile(openFileDialog.GetPath());
 }
 
 //undo and redo functions
-void MainFrame::OnUndo(wxCommandEvent& event) {
+void MainFrame::OnUndo(wxCommandEvent&) {
     if (textCtrl->CanUndo()) {
         textCtrl->Undo();
     }
 }
-void MainFrame::OnRedo(wxCommandEvent& event) {
+void MainFrame::OnRedo(wxCommandEvent&) {
     if (textCtrl->CanRedo()) {
         textCtrl->Redo();
     }
@@ -642,17 +711,12 @@ void MainFrame::OnDropFiles(const wxArrayString& filenames)
 {
     if (filenames.GetCount() > 0)
     {
-        wxString path = filenames[0];
-        if (!IsFileSupported(path)) { //check if file is supported
-            wxMessageBox("wEditor does not support this file format. Please drop a text or code file.", "Unsupported Format", wxOK | wxICON_WARNING);
-            return;
-        }
-        LoadFile(path);
+        OpenFile(filenames[0]);
     }
 }
 
 //show preferences window
-void MainFrame::OnPreferences(wxCommandEvent& event)
+void MainFrame::OnPreferences(wxCommandEvent&)
 {    
     PreferencesFrame* preferencesFrame = new PreferencesFrame("Preferences");
     preferencesFrame->SetClientSize(preferencesFrame->FromDIP(wxSize(400, 300)));
@@ -660,7 +724,7 @@ void MainFrame::OnPreferences(wxCommandEvent& event)
 }
 
 //show about window
-void MainFrame::OnAbout(wxCommandEvent& event)
+void MainFrame::OnAbout(wxCommandEvent&)
 {
     wxMessageBox("wEditor is a simple cross-platform and open-source text editor written on C++ using wxWidgets library.",
                  "wEditor beta v3.1", wxOK | wxICON_INFORMATION);
@@ -669,26 +733,33 @@ void MainFrame::OnAbout(wxCommandEvent& event)
 void MainFrame::OnClose(wxCloseEvent& event)
 {
     wxConfigBase* config = wxConfig::Get();
+    wxString autosaveValue = "On";
+    if (config != nullptr)
+    {
+        autosaveValue = config->Read("Preferences/Autosave", "On");
+    }
+
+    if (textCtrl != nullptr && textCtrl->GetModify())
+    {
+        if (autosaveValue == "On" && !currentFilePath.IsEmpty())
+        {
+            if (!SaveToPath(currentFilePath, false))
+            {
+                event.Veto();
+                return;
+            }
+        }
+        else if (!PromptToSaveChanges())
+        {
+            event.Veto();
+            return;
+        }
+    }
+
     if (config != nullptr)
     {
         config->Write("Session/LastFile", currentFilePath);
         SaveWindowState();
-
-        //auto save current file on exit if enabled in preferences
-        wxString autosaveValue = config->Read("Preferences/Autosave", "On");
-
-        if (autosaveValue == "On" && !currentFilePath.IsEmpty())
-        {
-            wxString content = textCtrl->GetValue();
-            wxFile file;
-
-            if (file.Open(currentFilePath, wxFile::write))
-            {
-                file.Write(content);
-                file.Close();
-            }
-        }
-
         config->Flush();
     }
 
@@ -696,7 +767,7 @@ void MainFrame::OnClose(wxCloseEvent& event)
 }
 
 //close app
-void MainFrame::OnExit(wxCommandEvent& event)
+void MainFrame::OnExit(wxCommandEvent&)
 {
     Close(true);
 }

@@ -44,6 +44,9 @@ class MainFrame : public wxFrame
         //wildcard
         static const wxString wildcard;
 
+        bool PromptToSaveChanges();
+        bool SaveCurrentDocument(bool showSuccessMessage = true);
+        bool SaveToPath(const wxString& path, bool showSuccessMessage = true);
         bool ShouldSaveWindowState() const;
         void SaveWindowState() const;
         void OnClose(wxCloseEvent& event);

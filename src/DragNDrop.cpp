@@ -10,7 +10,7 @@
 #include <weditor/DragNDrop.h>
 #include <weditor/MainFrame.h>
 
-bool DragNDrop::OnDropFiles(wxCoord x, wxCoord y, const wxArrayString& filenames)
+bool DragNDrop::OnDropFiles(wxCoord, wxCoord, const wxArrayString& filenames)
 {
     if (!m_frame) return false;
     m_frame->OnDropFiles(filenames);
