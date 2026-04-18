@@ -29,7 +29,7 @@ wxColour ThemeSettings::GetButtonForegroundColour()
     return wxColour(BUTTON_FG_RED, BUTTON_FG_GREEN, BUTTON_FG_BLUE);
 }
 
-void ThemeSettings::ApplyDarkTheme(wxStyledTextCtrl* textCtrl)
+void ThemeSettings::ApplyTheme(wxStyledTextCtrl* textCtrl)
 {
     wxColour bg(38, 38, 38);
     wxColour fg(220, 220, 220);

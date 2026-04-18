@@ -76,7 +76,7 @@ public:
     static constexpr int FUNCTION_GREEN = 220;
     static constexpr int FUNCTION_BLUE = 170;
     
-    static void ApplyDarkTheme(wxStyledTextCtrl* textCtrl);
+    static void ApplyTheme(wxStyledTextCtrl* textCtrl);
     static wxColour GetBackgroundColour();
     static wxColour GetTextColour();
     static wxColour GetButtonBackgroundColour();
