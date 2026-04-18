@@ -532,6 +532,8 @@ wxString MainFrame::GetLanguageForExtension(const wxString& filename) const {
         return "Java";
     } else if (ext == "py") {
         return "Python";
+    } else if (ext == "js" || ext == "jsx" || ext == "ts" || ext == "tsx") {
+        return "JavaScript";
     } else if (ext == "sh") {
         return "Bash";
     } else if (ext == "bat" || ext == "cmd") {
