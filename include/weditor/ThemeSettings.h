@@ -28,9 +28,10 @@ public:
     static constexpr int BUTTON_BG_GREEN = 110;
     static constexpr int BUTTON_BG_BLUE = 110;
 
-    static constexpr int BUTTON_FG_RED = 255;
-    static constexpr int BUTTON_FG_GREEN = 255;
-    static constexpr int BUTTON_FG_BLUE = 255;
+    // Match the grayscale used by the embedded undo/redo toolbar icons.
+    static constexpr int BUTTON_FG_RED = 200;
+    static constexpr int BUTTON_FG_GREEN = 200;
+    static constexpr int BUTTON_FG_BLUE = 200;
     
     //font settings
     static constexpr int FONT_SIZE = 14;
