@@ -80,7 +80,6 @@ MainFrame::MainFrame(const wxString& title)
     constexpr bool CARET_LINE_VISIBLE = true;
     textCtrl->SetCaretLineVisible(CARET_LINE_VISIBLE);
     textCtrl->SetIndentationGuides(true);
-    textCtrl->SetWrapMode(wxSTC_WRAP_WORD);
     highlightTimer.SetOwner(this);
         Bind(wxEVT_TIMER, [this](wxTimerEvent&) {
             HighlightSyntax();
