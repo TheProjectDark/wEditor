@@ -39,17 +39,21 @@ wxIMPLEMENT_APP(App);
 MainFrame::MainFrame(const wxString& title)
     : wxFrame(nullptr, wxID_ANY, title)
 {
-    wxPanel* panel = new wxPanel(this);
-    //set dark theme
-    wxColour darkBackground = ThemeSettings::GetBackgroundColour();
-    wxColour darkText = ThemeSettings::GetTextColour();
+    // Load theme from config
+    wxString themeValue = wxConfig::Get()->Read("Preferences/Theme", "Dark");
+    ThemeSettings::SetTheme(themeValue);
+
+    panel = new wxPanel(this);
+    // set theme colors
+    wxColour background = ThemeSettings::GetBackgroundColour();
+    wxColour text = ThemeSettings::GetTextColour();
     
-    panel->SetBackgroundColour(darkBackground);
-    panel->SetForegroundColour(darkText);
+    panel->SetBackgroundColour(background);
+    panel->SetForegroundColour(text);
     
-    SetBackgroundColour(darkBackground);
-    SetForegroundColour(darkText);
-    //create menu
+    SetBackgroundColour(background);
+    SetForegroundColour(text);
+    // create menu
     wxMenu *menuFile = new wxMenu;
     menuFile->Append(wxID_NEW);
     menuFile->Append(wxID_SAVEAS);
@@ -76,7 +80,7 @@ MainFrame::MainFrame(const wxString& title)
     SetIcon(wxIcon("app.ico", wxBITMAP_TYPE_ICO));
     #endif
     //set caret line to visible with a subtle background color
-    textCtrl->SetCaretLineBackground(wxColour(50, 50, 70));
+    textCtrl->SetCaretLineBackground(ThemeSettings::GetCaretLineBackgroundColour());
     constexpr bool CARET_LINE_VISIBLE = true;
     textCtrl->SetCaretLineVisible(CARET_LINE_VISIBLE);
     textCtrl->SetIndentationGuides(true);
@@ -85,13 +89,13 @@ MainFrame::MainFrame(const wxString& title)
             HighlightSyntax();
         }, highlightTimer.GetId());
     
-    wxButton* newFile = new wxButton(panel, wxID_ANY, "New file");
-    wxButton* saveAs = new wxButton(panel, wxID_ANY, "Save as");
-    wxButton* save = new wxButton(panel, wxID_ANY, "Save");
-    wxButton* open = new wxButton(panel, wxID_ANY, "Open");
+    newFile = new wxButton(panel, wxID_ANY, "New file");
+    saveAs = new wxButton(panel, wxID_ANY, "Save as");
+    save = new wxButton(panel, wxID_ANY, "Save");
+    open = new wxButton(panel, wxID_ANY, "Open");
     //undo and redo buttons (ctrl+z and ctrl+y)
-    wxButton* undo = new wxButton(panel, wxID_ANY, "");
-    wxButton* redo = new wxButton(panel, wxID_ANY, "");
+    undo = new wxButton(panel, wxID_ANY, "");
+    redo = new wxButton(panel, wxID_ANY, "");
 
     wxBitmap undoBmp = LoadToolbarIcon(EmbeddedIcons::edit_undo_png, EmbeddedIcons::edit_undo_png_len, wxART_UNDO);
     wxBitmap redoBmp = LoadToolbarIcon(EmbeddedIcons::edit_redo_png, EmbeddedIcons::edit_redo_png_len, wxART_REDO);
@@ -189,6 +193,55 @@ MainFrame::MainFrame(const wxString& title)
     Bind(wxEVT_STC_CHANGE, &MainFrame::OnText, this);
     Bind(wxEVT_CLOSE_WINDOW, &MainFrame::OnClose, this);
 
+}
+
+void MainFrame::ApplyTheme()
+{
+    wxColour background = ThemeSettings::GetBackgroundColour();
+    wxColour text = ThemeSettings::GetTextColour();
+    wxColour buttonBackground = ThemeSettings::GetButtonBackgroundColour();
+    wxColour buttonForeground = ThemeSettings::GetButtonForegroundColour();
+
+    if (panel != nullptr) {
+        panel->SetBackgroundColour(background);
+        panel->SetForegroundColour(text);
+    }
+    SetBackgroundColour(background);
+    SetForegroundColour(text);
+
+    if (textCtrl != nullptr) {
+        ThemeSettings::ApplyTheme(textCtrl);
+        textCtrl->SetCaretLineBackground(ThemeSettings::GetCaretLineBackgroundColour());
+    }
+
+    if (newFile != nullptr) {
+        newFile->SetBackgroundColour(buttonBackground);
+        newFile->SetForegroundColour(buttonForeground);
+    }
+    if (saveAs != nullptr) {
+        saveAs->SetBackgroundColour(buttonBackground);
+        saveAs->SetForegroundColour(buttonForeground);
+    }
+    if (save != nullptr) {
+        save->SetBackgroundColour(buttonBackground);
+        save->SetForegroundColour(buttonForeground);
+    }
+    if (open != nullptr) {
+        open->SetBackgroundColour(buttonBackground);
+        open->SetForegroundColour(buttonForeground);
+    }
+    if (undo != nullptr) {
+        undo->SetBackgroundColour(buttonBackground);
+        undo->SetForegroundColour(buttonForeground);
+    }
+    if (redo != nullptr) {
+        redo->SetBackgroundColour(buttonBackground);
+        redo->SetForegroundColour(buttonForeground);
+    }
+    if (languageChoice != nullptr) {
+        languageChoice->SetBackgroundColour(buttonBackground);
+        languageChoice->SetForegroundColour(buttonForeground);
+    }
 }
 
 MainFrame::~MainFrame()
@@ -719,7 +772,7 @@ void MainFrame::OnDropFiles(const wxArrayString& filenames)
 //show preferences window
 void MainFrame::OnPreferences(wxCommandEvent&)
 {    
-    PreferencesFrame* preferencesFrame = new PreferencesFrame("Preferences");
+    PreferencesFrame* preferencesFrame = new PreferencesFrame(this, "Preferences");
     preferencesFrame->SetClientSize(preferencesFrame->FromDIP(wxSize(400, 300)));
     preferencesFrame->Show();
 }

@@ -8,10 +8,13 @@
  */
 
 #include <weditor/Preferences.h>
+#include <weditor/MainFrame.h>
 
 //Preferences frame constructor
-PreferencesFrame::PreferencesFrame(const wxString& title) {
-    wxFrame::Create(nullptr, wxID_ANY, title, wxDefaultPosition, wxSize(400, 300));
+PreferencesFrame::PreferencesFrame(MainFrame* owner, const wxString& title)
+    : wxFrame(owner, wxID_ANY, title, wxDefaultPosition, wxSize(400, 300))
+    , owner(owner)
+{
     wxPanel* panel = new wxPanel(this);
     //autosave choice
     wxStaticText* autosaveLabel = new wxStaticText(panel, wxID_ANY, "Autosave:");
@@ -28,6 +31,15 @@ PreferencesFrame::PreferencesFrame(const wxString& title) {
     openLastFileToggle->Append("Off");
     wxString openLastFileValue = wxConfig::Get()->Read("Preferences/OpenLastFile", "On");
     openLastFileToggle->SetStringSelection(openLastFileValue);
+
+    //change theme choice
+    wxStaticText* themeLabel = new wxStaticText(panel, wxID_ANY, "Theme:");
+    themeChoice = new wxChoice(panel, wxID_ANY);
+    themeChoice->Append("Dark");
+    themeChoice->Append("Light");
+    wxString themeValue = wxConfig::Get()->Read("Preferences/Theme", "Dark");
+    themeChoice->SetStringSelection(themeValue);
+    ThemeSettings::SetTheme(themeValue);
 
     //save MainFrame size and position toggle
     wxStaticText* saveWindowStateLabel = new wxStaticText(panel, wxID_ANY, "Save window size and position:");
@@ -51,25 +63,29 @@ PreferencesFrame::PreferencesFrame(const wxString& title) {
     cancelButton->Bind(wxEVT_BUTTON, &PreferencesFrame::OnCancel, this);
 
     //caching color to avoid repeated ThemeSettings calls
-    wxColour darkBackground = ThemeSettings::GetBackgroundColour();
-    wxColour darkText = ThemeSettings::GetTextColour();
+    wxColour background = ThemeSettings::GetBackgroundColour();
+    wxColour text = ThemeSettings::GetTextColour();
     wxColour buttonBg = ThemeSettings::GetButtonBackgroundColour();
     wxColour buttonFg = ThemeSettings::GetButtonForegroundColour();
 
-    panel->SetBackgroundColour(darkBackground);
-    panel->SetForegroundColour(darkText);
-    SetBackgroundColour(darkBackground);
-    SetForegroundColour(darkText);
-    autosaveLabel->SetBackgroundColour(darkBackground);
-    autosaveLabel->SetForegroundColour(darkText);
+    panel->SetBackgroundColour(background);
+    panel->SetForegroundColour(text);
+    SetBackgroundColour(background);
+    SetForegroundColour(text);
+    autosaveLabel->SetBackgroundColour(background);
+    autosaveLabel->SetForegroundColour(text);
     autosaveToggle->SetBackgroundColour(buttonBg);
     autosaveToggle->SetForegroundColour(buttonFg);
-    openLastFileLabel->SetBackgroundColour(darkBackground);
-    openLastFileLabel->SetForegroundColour(darkText);
+    openLastFileLabel->SetBackgroundColour(background);
+    openLastFileLabel->SetForegroundColour(text);
     openLastFileToggle->SetBackgroundColour(buttonBg);
     openLastFileToggle->SetForegroundColour(buttonFg);
-    saveWindowStateLabel->SetBackgroundColour(darkBackground);
-    saveWindowStateLabel->SetForegroundColour(darkText);
+    themeLabel->SetBackgroundColour(background);
+    themeLabel->SetForegroundColour(text);
+    themeChoice->SetBackgroundColour(buttonBg);
+    themeChoice->SetForegroundColour(buttonFg);
+    saveWindowStateLabel->SetBackgroundColour(background);
+    saveWindowStateLabel->SetForegroundColour(text);
     saveWindowStateToggle->SetBackgroundColour(buttonBg);
     saveWindowStateToggle->SetForegroundColour(buttonFg);
     restoreDefault->SetBackgroundColour(buttonBg);
@@ -85,11 +101,13 @@ PreferencesFrame::PreferencesFrame(const wxString& title) {
     autosaveToggle->SetMinSize(wxSize(100, -1));
     openLastFileLabel->SetMinSize(wxSize(150, -1));
     openLastFileToggle->SetMinSize(wxSize(100, -1));
+    themeLabel->SetMinSize(wxSize(50, -1));
+    themeChoice->SetMinSize(wxSize(100, -1));
     saveWindowStateLabel->SetMinSize(wxSize(200, -1));
     saveWindowStateToggle->SetMinSize(wxSize(100, -1));
 
     //setup sizers
-    wxFlexGridSizer* gridSizer = new wxFlexGridSizer(4, 2, 10, 10); // rows, cols, vgap, hgap
+    wxFlexGridSizer* gridSizer = new wxFlexGridSizer(5, 2, 10, 10); // rows, cols, vgap, hgap
     gridSizer->AddGrowableCol(0);
 
     gridSizer->Add(autosaveLabel, 0, wxALIGN_CENTER_VERTICAL);
@@ -97,6 +115,9 @@ PreferencesFrame::PreferencesFrame(const wxString& title) {
 
     gridSizer->Add(openLastFileLabel, 0, wxALIGN_CENTER_VERTICAL);
     gridSizer->Add(openLastFileToggle, 0, wxALIGN_CENTER_VERTICAL);
+
+    gridSizer->Add(themeLabel, 0, wxALIGN_CENTER_VERTICAL);
+    gridSizer->Add(themeChoice, 0, wxALIGN_CENTER_VERTICAL);
 
     gridSizer->Add(saveWindowStateLabel, 0, wxALIGN_CENTER_VERTICAL);
     gridSizer->Add(saveWindowStateToggle, 0, wxALIGN_CENTER_VERTICAL);
@@ -131,8 +152,16 @@ bool PreferencesFrame::SavePreferences() {
 
     config->Write("Preferences/Autosave", autosaveToggle->GetStringSelection());
     config->Write("Preferences/OpenLastFile", openLastFileToggle->GetStringSelection());
+    config->Write("Preferences/Theme", themeChoice->GetStringSelection());
     config->Write("Preferences/SaveWindowState", saveWindowStateToggle->GetStringSelection());
     config->Flush();
+
+    // Apply the theme immediately
+    ThemeSettings::SetTheme(themeChoice->GetStringSelection());
+    if (owner != nullptr) {
+        owner->ApplyTheme();
+    }
+
     return true;
 }
 
@@ -170,6 +199,10 @@ void PreferencesFrame::OnRestoreDefault(wxCommandEvent&) {
 
     if (openLastFileToggle != nullptr) {
         openLastFileToggle->SetStringSelection("Off");
+    }
+
+    if (themeChoice != nullptr) {
+        themeChoice->SetStringSelection("Dark");
     }
 
     if (saveWindowStateToggle != nullptr) {

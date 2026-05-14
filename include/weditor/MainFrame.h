@@ -27,14 +27,22 @@ class MainFrame : public wxFrame
         MainFrame(const wxString& title);
         ~MainFrame();
         void OnDropFiles(const wxArrayString& filenames);
+        void ApplyTheme();
         void OpenFile(const wxString& path);
         void LoadFile(const wxString& path);
         void RestoreLastFile();
         void RestoreWindowState();
 
     private:
+        wxPanel* panel;
         wxStyledTextCtrl* textCtrl;
         wxChoice* languageChoice;
+        wxButton* newFile;
+        wxButton* saveAs;
+        wxButton* save;
+        wxButton* open;
+        wxButton* undo;
+        wxButton* redo;
         SyntaxHighlighter* currentHighlighter;
         wxString currentLanguage;
         wxString currentFilePath;

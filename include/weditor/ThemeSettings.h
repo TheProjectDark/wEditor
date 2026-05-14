@@ -14,24 +14,44 @@
 
 class ThemeSettings
 {
+private:
+    static wxString currentTheme;
+
 public:
     //dark theme colors
-    static constexpr int BG_RED = 30;
-    static constexpr int BG_GREEN = 30;
-    static constexpr int BG_BLUE = 30;
+    static constexpr int DARK_BG_RED = 30;
+    static constexpr int DARK_BG_GREEN = 30;
+    static constexpr int DARK_BG_BLUE = 30;
     
-    static constexpr int TEXT_RED = 230;
-    static constexpr int TEXT_GREEN = 230;
-    static constexpr int TEXT_BLUE = 230;
+    static constexpr int DARK_TEXT_RED = 230;
+    static constexpr int DARK_TEXT_GREEN = 230;
+    static constexpr int DARK_TEXT_BLUE = 230;
     
-    static constexpr int BUTTON_BG_RED = 110;
-    static constexpr int BUTTON_BG_GREEN = 110;
-    static constexpr int BUTTON_BG_BLUE = 110;
+    static constexpr int DARK_BUTTON_BG_RED = 110;
+    static constexpr int DARK_BUTTON_BG_GREEN = 110;
+    static constexpr int DARK_BUTTON_BG_BLUE = 110;
 
     // Match the grayscale used by the embedded undo/redo toolbar icons.
-    static constexpr int BUTTON_FG_RED = 200;
-    static constexpr int BUTTON_FG_GREEN = 200;
-    static constexpr int BUTTON_FG_BLUE = 200;
+    static constexpr int DARK_BUTTON_FG_RED = 200;
+    static constexpr int DARK_BUTTON_FG_GREEN = 200;
+    static constexpr int DARK_BUTTON_FG_BLUE = 200;
+
+    //light theme colors
+    static constexpr int LIGHT_BG_RED = 255;
+    static constexpr int LIGHT_BG_GREEN = 255;
+    static constexpr int LIGHT_BG_BLUE = 255;
+    
+    static constexpr int LIGHT_TEXT_RED = 0;
+    static constexpr int LIGHT_TEXT_GREEN = 0;
+    static constexpr int LIGHT_TEXT_BLUE = 0;
+    
+    static constexpr int LIGHT_BUTTON_BG_RED = 240;
+    static constexpr int LIGHT_BUTTON_BG_GREEN = 240;
+    static constexpr int LIGHT_BUTTON_BG_BLUE = 240;
+
+    static constexpr int LIGHT_BUTTON_FG_RED = 0;
+    static constexpr int LIGHT_BUTTON_FG_GREEN = 0;
+    static constexpr int LIGHT_BUTTON_FG_BLUE = 0;
     
     //font settings
     static constexpr int FONT_SIZE = 14;
@@ -77,9 +97,17 @@ public:
     static constexpr int FUNCTION_GREEN = 220;
     static constexpr int FUNCTION_BLUE = 170;
     
+    static void SetTheme(const wxString& theme);
+    static wxString GetCurrentTheme();
     static void ApplyTheme(wxStyledTextCtrl* textCtrl);
     static wxColour GetBackgroundColour();
     static wxColour GetTextColour();
     static wxColour GetButtonBackgroundColour();
     static wxColour GetButtonForegroundColour();
+    static wxColour GetEditorBackgroundColour();
+    static wxColour GetToolbarBackgroundColour();
+    static wxColour GetCaretLineBackgroundColour();
+    static wxColour GetSelectionBackgroundColour();
+    static wxColour GetLineNumberBackgroundColour();
+    static wxColour GetLineNumberForegroundColour();
 };

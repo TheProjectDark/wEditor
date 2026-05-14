@@ -12,10 +12,12 @@
 #include <wx/config.h>
 #include "ThemeSettings.h"
 
+class MainFrame;
+
 //Preferences frame class
 class PreferencesFrame : public wxFrame {
     public:
-        PreferencesFrame(const wxString& title);
+        PreferencesFrame(MainFrame* owner, const wxString& title);
         bool SavePreferences();
         void OnApply(wxCommandEvent& event);
         void OnOk(wxCommandEvent& event);
@@ -23,7 +25,9 @@ class PreferencesFrame : public wxFrame {
         void OnRestoreDefault(wxCommandEvent& event);
 
     private:
+        MainFrame* owner = nullptr;
         wxChoice* autosaveToggle = nullptr;
         wxChoice* openLastFileToggle = nullptr;
         wxChoice* saveWindowStateToggle = nullptr;
+        wxChoice* themeChoice = nullptr;
 };
