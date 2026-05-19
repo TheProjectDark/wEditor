@@ -6,6 +6,13 @@
             "type": "shell",
             "command": "make",
             "args": [],
+            "options": {
+                "cwd": "${workspaceFolder}",
+                "env": {
+                    "CXX": "clang++",
+                    "WX_CONFIG": "wx-config"
+                }
+            },
             "group": {
                 "kind": "build",
                 "isDefault": true
@@ -14,34 +21,43 @@
             "presentation": {
                 "reveal": "always",
                 "panel": "shared"
-            },
-            "options": {
-                "env": {
-                    "CXX": "clang++",
-                    "WX_CONFIG": "wx-config"
-                }
             }
         },
         {
             "label": "clean",
             "type": "shell",
-            "command": "make clean",
-            "problemMatcher": []
+            "command": "make",
+            "args": ["clean"],
+            "options": {
+                "cwd": "${workspaceFolder}"
+            },
+            "problemMatcher": [],
+            "presentation": {
+                "reveal": "always",
+                "panel": "shared"
+            }
         },
         {
             "label": "rebuild",
             "type": "shell",
             "dependsOn": ["clean", "build"],
-            "problemMatcher": []
+            "dependsOrder": "sequence",
+            "options": {
+                "cwd": "${workspaceFolder}"
+            },
+            "problemMatcher": [],
+            "presentation": {
+                "reveal": "always",
+                "panel": "shared"
+            }
         },
         {
             "label": "run",
             "type": "shell",
             "command": "./wEditor",
             "dependsOn": ["build"],
-            "group": {
-                "kind": "test",
-                "isDefault": true
+            "options": {
+                "cwd": "${workspaceFolder}"
             },
             "presentation": {
                 "reveal": "always",
