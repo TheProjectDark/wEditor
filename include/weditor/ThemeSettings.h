@@ -58,9 +58,9 @@ public:
     static constexpr wxFontFamily FONT_FAMILY = wxFONTFAMILY_TELETYPE;
     
     //comment color (green)
-    static constexpr int COMMENT_RED = 128;
-    static constexpr int COMMENT_GREEN = 255;
-    static constexpr int COMMENT_BLUE = 170;
+    static constexpr int COMMENT_RED = 65;
+    static constexpr int COMMENT_GREEN = 140;
+    static constexpr int COMMENT_BLUE = 90;
     
     //string color (orange)
     static constexpr int STRING_RED = 255;
