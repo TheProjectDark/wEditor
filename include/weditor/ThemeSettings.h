@@ -92,10 +92,10 @@ public:
     static constexpr int OPERATOR_GREEN = 200;
     static constexpr int OPERATOR_BLUE = 200;
     
-    //function color (light yellow)
-    static constexpr int FUNCTION_RED = 220;
-    static constexpr int FUNCTION_GREEN = 220;
-    static constexpr int FUNCTION_BLUE = 170;
+    //function color (purple)
+    static constexpr int FUNCTION_RED = 255;
+    static constexpr int FUNCTION_GREEN = 40;
+    static constexpr int FUNCTION_BLUE = 215;
     
     static void SetTheme(const wxString& theme);
     static wxString GetCurrentTheme();
