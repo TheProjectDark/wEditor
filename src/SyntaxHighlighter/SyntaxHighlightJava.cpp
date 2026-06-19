@@ -19,19 +19,29 @@ static const std::unordered_set<std::string> javaKeywords = {
     "public", "private", "protected", "return", "static", "strictfp", "super",
     "switch", "synchronized", "this", "throw", "throws",
     "volatile", "transient", "native", "interface",
-    "import", "package", "instanceof", "new"
+    "import", "package", "instanceof", "new",
+    "char", "short", "var", "record", "sealed", "permits", "yield",
+    "module", "open", "requires", "exports", "opens", "uses", "provides",
+    "transitive", "to", "with"
 };
 static const std::unordered_set<std::string> javaTypes = {
-    "int", "long", "float", "double", "void",
-    "String", "Object", "List", "Map", "Set",
+    "int", "long", "float", "double", "void", "char", "short",
+    "boolean", "String", "Object", "List", "Map", "Set",
+    "Collection", "Optional", "Stream", "StringBuilder", "StringBuffer"
 };
 static const std::unordered_set<std::string> javaLiterals = {
     "true", "false", "null"
 };
 static const std::unordered_set<std::string> javaStdFuncs = {
     "System.out.println", "System.out.print", "System.err.println", "System.err.print",
-    "Math.abs", "Math.max", "Math.min", "Math.sqrt", "Math.pow",
+    "Math.abs", "Math.max", "Math.min", "Math.sqrt", "Math.pow", "Math.round",
+    "Math.ceil", "Math.floor", "Math.random",
     "String.length", "String.charAt", "String.substring", "String.indexOf",
+    "String.format", "String.valueOf", "String.equals", "String.compareTo",
+    "StringBuilder.append", "StringBuilder.toString",
+    "Collections.sort", "Arrays.asList", "Arrays.copyOf",
+    "Objects.requireNonNull",
+    "Integer.parseInt", "Long.parseLong", "Double.parseDouble",
     "List.add", "List.remove", "List.size", "List.get",
     "Map.put", "Map.get", "Map.containsKey", "Map.containsValue"
 };
