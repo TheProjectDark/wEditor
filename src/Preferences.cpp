@@ -15,7 +15,7 @@ PreferencesFrame::PreferencesFrame(MainFrame* owner, const wxString& title)
     : wxFrame(owner, wxID_ANY, title, wxDefaultPosition, wxSize(400, 300))
     , owner(owner)
 {
-    wxPanel* panel = new wxPanel(this);
+    panel = new wxPanel(this);
     //autosave choice
     wxStaticText* autosaveLabel = new wxStaticText(panel, wxID_ANY, "Autosave:");
     autosaveToggle = new wxChoice(panel, wxID_ANY);
@@ -136,6 +136,7 @@ PreferencesFrame::PreferencesFrame(MainFrame* owner, const wxString& title)
     mainSizer->Add(buttonSizer, 0, wxEXPAND | wxLEFT | wxRIGHT | wxBOTTOM, 10);
     panel->SetSizer(mainSizer);
     panel->Layout();
+    ApplyTheme();
 }
 
 bool PreferencesFrame::SavePreferences() {
@@ -158,6 +159,7 @@ bool PreferencesFrame::SavePreferences() {
 
     // Apply the theme immediately
     ThemeSettings::SetTheme(themeChoice->GetStringSelection());
+    ApplyTheme();
     if (owner != nullptr) {
         owner->ApplyTheme();
     }
@@ -165,16 +167,44 @@ bool PreferencesFrame::SavePreferences() {
     return true;
 }
 
-void PreferencesFrame::OnApply(wxCommandEvent&) {
-    if (SavePreferences()) {
-        Close();
+void PreferencesFrame::ApplyTheme()
+{
+    if (panel == nullptr) {
+        return;
     }
+
+    wxColour background = ThemeSettings::GetBackgroundColour();
+    wxColour text = ThemeSettings::GetTextColour();
+    wxColour buttonBg = ThemeSettings::GetButtonBackgroundColour();
+    wxColour buttonFg = ThemeSettings::GetButtonForegroundColour();
+
+    panel->SetBackgroundColour(background);
+    panel->SetForegroundColour(text);
+    SetBackgroundColour(background);
+    SetForegroundColour(text);
+
+    for (wxWindow* child : panel->GetChildren()) {
+        if (wxButton* button = dynamic_cast<wxButton*>(child)) {
+            button->SetBackgroundColour(buttonBg);
+            button->SetForegroundColour(buttonFg);
+        } else if (wxChoice* choice = dynamic_cast<wxChoice*>(child)) {
+            choice->SetBackgroundColour(buttonBg);
+            choice->SetForegroundColour(buttonFg);
+        } else {
+            child->SetBackgroundColour(background);
+            child->SetForegroundColour(text);
+        }
+        child->Refresh();
+    }
+    Refresh();
+}
+
+void PreferencesFrame::OnApply(wxCommandEvent&) {
+    SavePreferences();
 }
 
 void PreferencesFrame::OnOk(wxCommandEvent&) {
-    if (SavePreferences()) {
-        Close();
-    }
+    if (SavePreferences()) Close();
 }
 
 void PreferencesFrame::OnCancel(wxCommandEvent&) {

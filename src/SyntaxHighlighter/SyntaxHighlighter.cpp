@@ -19,6 +19,7 @@
 #include <weditor/SyntaxHighlighter/SyntaxHighlightBatch.h>
 #include <weditor/SyntaxHighlighter/SyntaxHighlightAssembly.h>
 #include <weditor/SyntaxHighlighter/SyntaxHighlightSQL.h>
+#include <weditor/SyntaxHighlighter/CMakeHighlight.h>
 
 SyntaxHighlighter* HighlighterFactory::CreateHighlighter(const wxString& language) {
     if (language == "Text") {
@@ -54,6 +55,9 @@ SyntaxHighlighter* HighlighterFactory::CreateHighlighter(const wxString& languag
     else if (language == "SQL Script") {
         return new SyntaxHighlightSQL();
     }
+    else if (language == "CMake") {
+        return new CMakeHighlight();
+    }
     return new Text();
 }
 
@@ -69,6 +73,7 @@ std::vector<wxString> HighlighterFactory::GetAvailableLanguages() {
         "Bash",
         "Batch",
         "Assembly",
-        "SQL Script"
+        "SQL Script",
+        "CMake"
     };
 }

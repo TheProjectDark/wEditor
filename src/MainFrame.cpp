@@ -573,6 +573,8 @@ void MainFrame::OnCharAdded(wxStyledTextEvent& event)
 
 //get language for syntax highlight by extension
 wxString MainFrame::GetLanguageForExtension(const wxString& filename) const {
+    wxFileName fileName(filename);
+    wxString baseName = fileName.GetFullName();
     wxString ext = filename.AfterLast('.').Lower();
     if (ext == "cpp" || ext == "h" || ext == "hpp") {
         return "C++";
@@ -594,6 +596,8 @@ wxString MainFrame::GetLanguageForExtension(const wxString& filename) const {
         return "Assembly";
     } else if (ext == "sql") {
         return "SQL Script";
+    } else if (baseName == "CMakeLists.txt" || ext == "cmake") {
+        return "CMake";
     } else {
         return "Text";
     }

@@ -28,6 +28,7 @@ src/SyntaxHighlighter/SyntaxHighlightBash.cpp \
 src/SyntaxHighlighter/SyntaxHighlightBatch.cpp \
 src/SyntaxHighlighter/SyntaxHighlightAssembly.cpp \
 src/SyntaxHighlighter/SyntaxHighlightSQL.cpp \
+src/SyntaxHighlighter/CMakeHighlight.cpp \
 src/DragNDrop.cpp \
 src/ThemeSettings.cpp \
 src/Preferences.cpp

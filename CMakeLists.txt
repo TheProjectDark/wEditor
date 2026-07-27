@@ -29,6 +29,7 @@ set(SOURCES
     src/SyntaxHighlighter/SyntaxHighlightBatch.cpp
     src/SyntaxHighlighter/SyntaxHighlightAssembly.cpp
     src/SyntaxHighlighter/SyntaxHighlightSQL.cpp
+    src/SyntaxHighlighter/CMakeHighlight.cpp
     src/SyntaxHighlighter/Text.cpp
 
     src/Preferences.cpp
