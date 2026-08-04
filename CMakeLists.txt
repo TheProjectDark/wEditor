@@ -30,6 +30,7 @@ set(SOURCES
     src/SyntaxHighlighter/SyntaxHighlightAssembly.cpp
     src/SyntaxHighlighter/SyntaxHighlightSQL.cpp
     src/SyntaxHighlighter/CMakeHighlight.cpp
+    src/SyntaxHighlighter/MakefileHighlight.cpp
     src/SyntaxHighlighter/Text.cpp
 
     src/Preferences.cpp

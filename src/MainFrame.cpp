@@ -598,6 +598,8 @@ wxString MainFrame::GetLanguageForExtension(const wxString& filename) const {
         return "SQL Script";
     } else if (baseName == "CMakeLists.txt" || ext == "cmake") {
         return "CMake";
+    } else if (baseName == "Makefile" || ext == "mk") {
+        return "Makefile";
     } else {
         return "Text";
     }
