@@ -74,6 +74,11 @@ MainFrame::MainFrame(const wxString& title)
     SetMenuBar(menuBar);
 
     textCtrl = new wxStyledTextCtrl(panel, wxID_ANY);
+    textCtrl->SetWrapMode(wxSTC_WRAP_NONE);
+    //we will display horizontal scroll bar only when needed
+    textCtrl->SetScrollWidth(1);
+    textCtrl->SetScrollWidthTracking(true);
+
     ThemeSettings::ApplyTheme(textCtrl);
     //setting icon for Microsoft Windows
     #ifdef __WXMSW__
@@ -529,9 +534,11 @@ void MainFrame::UpdateLineNumberMargin()
 }
 
 //syntax highlight functions
-void MainFrame::OnText(wxCommandEvent&) {
+void MainFrame::OnText(wxCommandEvent& event) {
     UpdateLineNumberMargin();
     highlightTimer.StartOnce(150);
+    textCtrl->SetScrollWidth(1);
+    event.Skip();
 }
 void MainFrame::OnLanguageChange(wxCommandEvent&) {
     currentLanguage = languageChoice->GetStringSelection();
