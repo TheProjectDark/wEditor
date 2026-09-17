@@ -15,6 +15,7 @@
 #include <wx/config.h>
 #include <wx/artprov.h>
 #include <unordered_set>
+#include <wx/filename.h>
 #include "ThemeSettings.h"
 #include "SyntaxHighlighter/SyntaxHighlighter.h"
 #include "DragNDrop.h"

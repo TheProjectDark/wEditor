@@ -4,17 +4,10 @@ project(wEditor)
 set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-set(wxWidgets_ROOT_DIR "C:/wxWidgets-3.3.2/build-mingw")
-set(wxWidgets_USE_STATIC ON)
-set(wxWidgets_USE_UNICODE ON)
+find_package(wxWidgets CONFIG REQUIRED COMPONENTS core base stc)
 
-find_package(wxWidgets REQUIRED COMPONENTS core base stc)
-
-include(${wxWidgets_USE_FILE})
-
-set(SOURCES
+add_executable(wEditor WIN32
     src/MainFrame.cpp
-
     src/DragNDrop.cpp
     src/ThemeSettings.cpp
 
@@ -36,12 +29,6 @@ set(SOURCES
     src/Preferences.cpp
 )
 
-if(WIN32)
-    set(WINDOWS_RES app.rc)
-endif()
-
-add_executable(wEditor WIN32 ${SOURCES} ${WINDOWS_RES})
-
 target_include_directories(wEditor PRIVATE include)
 
-target_link_libraries(wEditor ${wxWidgets_LIBRARIES})
+target_link_libraries(wEditor PRIVATE ${wxWidgets_LIBRARIES})
