@@ -4,7 +4,22 @@ project(wEditor)
 set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
+if(CMAKE_SYSTEM_PROCESSOR MATCHES "aarch64|ARM64")
+    message(STATUS "Using ARM64 wxWidgets")
+    set(CMAKE_PREFIX_PATH "C:/msys64/opt/wx-arm64-static")
+else()
+    message(STATUS "Using x86_64 wxWidgets")
+    set(CMAKE_PREFIX_PATH "C:/msys64/opt/wx-x64-static")
+endif()
+
+# static
+add_definitions(-DwxUSE_STATIC=1)
+
 find_package(wxWidgets CONFIG REQUIRED COMPONENTS core base stc)
+
+if(WIN32)
+    set(WINDOWS_RES app.rc)
+endif()
 
 add_executable(wEditor WIN32
     src/MainFrame.cpp
@@ -27,8 +42,14 @@ add_executable(wEditor WIN32
     src/SyntaxHighlighter/Text.cpp
 
     src/Preferences.cpp
+
+    ${WINDOWS_RES}
 )
 
 target_include_directories(wEditor PRIVATE include)
 
-target_link_libraries(wEditor PRIVATE ${wxWidgets_LIBRARIES})
+target_link_libraries(wEditor PRIVATE
+    wx::core
+    wx::base
+    wx::stc
+)
