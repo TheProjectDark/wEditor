@@ -12,7 +12,17 @@ endif
 #Compiler flags
 CXXFLAGS = -std=c++23 -O2
 
-TARGET = wEditor
+ifeq ($(UNAME_S),Darwin)
+    MACOS_VERSION_MIN = -mmacosx-version-min=12.0
+
+    ARCH_FLAGS_X86 = -arch x86_64
+    ARCH_FLAGS_ARM = -arch arm64
+    
+    TARGET_X86 = wEditor_x86_64
+    TARGET_ARM = wEditor_arm64
+else
+    TARGET = wEditor
+endif
 
 SRC = \
 src/MainFrame.cpp \
@@ -41,10 +51,20 @@ WX_LIBS = $(shell $(WX_CONFIG) --libs std,stc)
 
 .PHONY: all clean
 
+ifeq ($(UNAME_S),Darwin)
+all: $(TARGET_X86) $(TARGET_ARM)
+
+$(TARGET_X86): $(SRC)
+	$(CXX) $(CXXFLAGS) $(MACOS_VERSION_MIN) $(ARCH_FLAGS_X86) $(WX_CXXFLAGS) -Iinclude $(SRC) -o $@ $(WX_LIBS)
+
+$(TARGET_ARM): $(SRC)
+	$(CXX) $(CXXFLAGS) $(MACOS_VERSION_MIN) $(ARCH_FLAGS_ARM) $(WX_CXXFLAGS) -Iinclude $(SRC) -o $@ $(WX_LIBS)
+else
 all: $(TARGET)
 
 $(TARGET): $(SRC)
-	$(CXX) $(CXXFLAGS) $(WX_CXXFLAGS) -Iinclude $(SRC) -o $(TARGET) $(WX_LIBS)
+	$(CXX) $(CXXFLAGS) $(WX_CXXFLAGS) -Iinclude $(SRC) -o $@ $(WX_LIBS)
+endif
 
 clean:
-	rm -f $(TARGET)
+	rm -f $(TARGET) $(TARGET_X86) $(TARGET_ARM)
