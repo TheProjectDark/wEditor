@@ -794,7 +794,7 @@ void MainFrame::OnPreferences(wxCommandEvent&)
 void MainFrame::OnAbout(wxCommandEvent&)
 {
     wxMessageBox("wEditor is a simple cross-platform and open-source text editor written on C++ using wxWidgets library.",
-                 "wEditor beta v3.1", wxOK | wxICON_INFORMATION);
+                 "wEditor beta v4.0", wxOK | wxICON_INFORMATION);
 }
 
 void MainFrame::OnClose(wxCloseEvent& event)
