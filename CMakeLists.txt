@@ -4,24 +4,30 @@ project(wEditor)
 set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
+# ---------------------------------------------------------------------------
+# Pick wxWidgets root directory based on target architecture.
+# Both directories contain STATIC builds produced with:
+#   -DwxBUILD_SHARED=OFF -DwxBUILD_MONOLITHIC=OFF
+# ---------------------------------------------------------------------------
 if(CMAKE_SYSTEM_PROCESSOR MATCHES "aarch64|ARM64")
-    message(STATUS "Using ARM64 wxWidgets")
-    set(CMAKE_PREFIX_PATH "C:/msys64/opt/wx-arm64-static")
+    message(STATUS "Configuring for ARM64 (wx: C:/msys64/opt/wx-arm64-static)")
+    set(wxWidgets_ROOT_DIR "C:/msys64/opt/wx-arm64-static")
 else()
-    message(STATUS "Using x86_64 wxWidgets")
-    set(CMAKE_PREFIX_PATH "C:/msys64/opt/wx-x64-static")
+    message(STATUS "Configuring for x86-64 (wx: C:/msys64/opt/wx-x64-static)")
+    set(wxWidgets_ROOT_DIR "C:/msys64/opt/wx-x64-static")
 endif()
 
-# static
-add_definitions(-DwxUSE_STATIC=1)
+# Force static + unicode, exactly like the old working CMakeLists.
+set(wxWidgets_USE_STATIC ON)
+set(wxWidgets_USE_UNICODE ON)
 
-find_package(wxWidgets CONFIG REQUIRED COMPONENTS core base stc)
+find_package(wxWidgets REQUIRED COMPONENTS core base stc)
+include(${wxWidgets_USE_FILE})
 
-if(WIN32)
-    set(WINDOWS_RES app.rc)
-endif()
-
-add_executable(wEditor WIN32
+# ---------------------------------------------------------------------------
+# Sources
+# ---------------------------------------------------------------------------
+set(SOURCES
     src/MainFrame.cpp
     src/DragNDrop.cpp
     src/ThemeSettings.cpp
@@ -42,14 +48,14 @@ add_executable(wEditor WIN32
     src/SyntaxHighlighter/Text.cpp
 
     src/Preferences.cpp
-
-    ${WINDOWS_RES}
 )
+
+if(WIN32)
+    set(WINDOWS_RES app.rc)
+endif()
+
+add_executable(wEditor WIN32 ${SOURCES} ${WINDOWS_RES})
 
 target_include_directories(wEditor PRIVATE include)
 
-target_link_libraries(wEditor PRIVATE
-    wx::core
-    wx::base
-    wx::stc
-)
+target_link_libraries(wEditor PRIVATE ${wxWidgets_LIBRARIES})
