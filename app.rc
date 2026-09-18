@@ -1,3 +1,4 @@
+#include "wx/msw/wx.rc"
 #ifdef __WXMSW__
 IDI_ICON1 ICON "app.ico"
 #endif
