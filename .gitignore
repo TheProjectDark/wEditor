@@ -11,6 +11,8 @@ out/
 *.dll
 *.a
 /wEditor
+/wEditor_arm64
+/wEditor_x86_64
 
 #cmake
 CMakeCache.txt
