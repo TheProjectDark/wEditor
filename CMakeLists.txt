@@ -11,18 +11,32 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 # ---------------------------------------------------------------------------
 if(CMAKE_SYSTEM_PROCESSOR MATCHES "aarch64|ARM64")
     message(STATUS "Configuring for ARM64 (wx: C:/msys64/opt/wx-arm64-static)")
-    set(wxWidgets_ROOT_DIR "C:/msys64/opt/wx-arm64-static")
+    set(CMAKE_PREFIX_PATH "C:/msys64/opt/wx-arm64-static")
 else()
     message(STATUS "Configuring for x86-64 (wx: C:/msys64/opt/wx-x64-static)")
     set(wxWidgets_ROOT_DIR "C:/msys64/opt/wx-x64-static")
 endif()
 
-# Force static + unicode, exactly like the old working CMakeLists.
-set(wxWidgets_USE_STATIC ON)
-set(wxWidgets_USE_UNICODE ON)
+if(CMAKE_SYSTEM_PROCESSOR MATCHES "aarch64|ARM64")
+    set(wxWidgets_LIB_DIR        "${wxWidgets_ROOT_DIR}/lib")
+    set(wxWidgets_CONFIGURATION  mswu)   # Unicode release; use mswud for debug
+endif()
 
-find_package(wxWidgets REQUIRED COMPONENTS core base stc)
-include(${wxWidgets_USE_FILE})
+set(wxWidgets_USE_STATIC     ON)
+set(wxWidgets_USE_UNICODE    ON)
+
+if(CMAKE_SYSTEM_PROCESSOR MATCHES "aarch64|ARM64")
+    set(wxWidgets_USE_DEBUG      OFF)
+    set(wxWidgets_USE_UNIVERSAL  OFF)
+    set(wxWidgets_FIND_STYLE     win32)
+endif()
+
+if(CMAKE_SYSTEM_PROCESSOR MATCHES "aarch64|ARM64")
+    find_package(wxWidgets CONFIG REQUIRED COMPONENTS core base stc)
+else()
+    find_package(wxWidgets REQUIRED COMPONENTS core base stc)
+    include(${wxWidgets_USE_FILE})
+endif()
 
 # ---------------------------------------------------------------------------
 # Sources
