@@ -101,26 +101,49 @@ void ThemeSettings::ApplyTheme(wxStyledTextCtrl* textCtrl)
     wxColour lineNumberBg = GetLineNumberBackgroundColour();
     wxColour lineNumberFg = GetLineNumberForegroundColour();
 
+    //Syntax colours. The values in the header are tuned for the dark theme. On the white editor several
+    //of them are hard to read (light blue keywords ~3:1 contrast, orange strings ~2.3:1, light green
+    //numbers and light grey operators ~1.7:1), which is what makes the light theme look washed out.
+    //So the light theme has its own palette (close to VS Code's Light+) and the dark one keeps the
+    //header values, except for the namespace colour (dark green was ~2:1 on the dark editor).
+    const bool light = (currentTheme == "Light");
+    const wxColour commentColour = light ? wxColour(0, 128, 0)
+                                         : wxColour(COMMENT_RED, COMMENT_GREEN, COMMENT_BLUE);
+    const wxColour stringColour = light ? wxColour(163, 21, 21)
+                                        : wxColour(STRING_RED, STRING_GREEN, STRING_BLUE);
+    const wxColour keywordColour = light ? wxColour(0, 0, 255)
+                                         : wxColour(KEYWORD_RED, KEYWORD_GREEN, KEYWORD_BLUE);
+    const wxColour preprocessorColour = wxColour(PREPROCESSOR_RED, PREPROCESSOR_GREEN, PREPROCESSOR_BLUE);
+    const wxColour namespaceColour = light ? wxColour(NAMESPACE_RED, NAMESPACE_GREEN, NAMESPACE_BLUE)
+                                           : wxColour(60, 170, 60);
+    const wxColour numberColour = light ? wxColour(9, 134, 88)
+                                        : wxColour(NUMBER_RED, NUMBER_GREEN, NUMBER_BLUE);
+    const wxColour operatorColour = light ? wxColour(64, 64, 64)
+                                          : wxColour(OPERATOR_RED, OPERATOR_GREEN, OPERATOR_BLUE);
+    const wxColour functionColour = light ? wxColour(200, 0, 170)
+                                          : wxColour(FUNCTION_RED, FUNCTION_GREEN, FUNCTION_BLUE);
+    const wxColour indentGuideColour = light ? wxColour(210, 210, 210) : wxColour(70, 70, 70);
+
     wxFont font(FONT_SIZE, FONT_FAMILY, wxFONTSTYLE_NORMAL, wxFONTWEIGHT_NORMAL);
 
-    // default style
+    //default style
     textCtrl->StyleSetFont(wxSTC_STYLE_DEFAULT, font);
     textCtrl->StyleSetForeground(wxSTC_STYLE_DEFAULT, fg);
     textCtrl->StyleSetBackground(wxSTC_STYLE_DEFAULT, bg);
     textCtrl->StyleClearAll();
 
-    // caret
+    //caret
     textCtrl->SetCaretForeground(fg);
 
-    // selection
+    //selection
     textCtrl->SetSelBackground(true, sel);
     textCtrl->SetSelForeground(true, fg);
 
-    // line numbers
+    //line numbers
     textCtrl->StyleSetForeground(wxSTC_STYLE_LINENUMBER, lineNumberFg);
     textCtrl->StyleSetBackground(wxSTC_STYLE_LINENUMBER, lineNumberBg);
 
-    // margins
+    //margins
     textCtrl->SetMarginType(0, wxSTC_MARGIN_NUMBER);
     textCtrl->SetMarginWidth(0, 40);
     textCtrl->SetMarginType(1, wxSTC_MARGIN_SYMBOL);
@@ -130,49 +153,30 @@ void ThemeSettings::ApplyTheme(wxStyledTextCtrl* textCtrl)
     textCtrl->SetFoldMarginColour(true, bg);
     textCtrl->SetFoldMarginHiColour(true, bg);
 
-    // syntax highlighting
-    textCtrl->StyleSetFont(STYLE_COMMENT, font);
-    textCtrl->StyleSetForeground(STYLE_COMMENT,
-        wxColour(COMMENT_RED, COMMENT_GREEN, COMMENT_BLUE));
-    textCtrl->StyleSetBackground(STYLE_COMMENT, bg);
-
-    textCtrl->StyleSetFont(STYLE_STRING, font);
-    textCtrl->StyleSetForeground(STYLE_STRING,
-        wxColour(STRING_RED, STRING_GREEN, STRING_BLUE));
-    textCtrl->StyleSetBackground(STYLE_STRING, bg);
-
-    textCtrl->StyleSetFont(STYLE_KEYWORD, font);
-    textCtrl->StyleSetForeground(STYLE_KEYWORD,
-        wxColour(KEYWORD_RED, KEYWORD_GREEN, KEYWORD_BLUE));
-    textCtrl->StyleSetBackground(STYLE_KEYWORD, bg);
+    //syntax highlighting
+    auto setSyntaxStyle = [&](int style, const wxColour& colour) {
+        textCtrl->StyleSetFont(style, font);
+        textCtrl->StyleSetForeground(style, colour);
+        textCtrl->StyleSetBackground(style, bg);
+    };
+    setSyntaxStyle(STYLE_COMMENT, commentColour);
+    setSyntaxStyle(STYLE_STRING, stringColour);
+    setSyntaxStyle(STYLE_KEYWORD, keywordColour);
     textCtrl->StyleSetBold(STYLE_KEYWORD, true);
+    setSyntaxStyle(STYLE_PREPROCESSOR, preprocessorColour);
+    setSyntaxStyle(STYLE_NAMESPACE, namespaceColour);
+    setSyntaxStyle(STYLE_NUMBER, numberColour);
+    setSyntaxStyle(STYLE_OPERATOR, operatorColour);
+    setSyntaxStyle(STYLE_FUNCTION, functionColour);
 
-    textCtrl->StyleSetFont(STYLE_PREPROCESSOR, font);
-    textCtrl->StyleSetForeground(STYLE_PREPROCESSOR,
-        wxColour(PREPROCESSOR_RED, PREPROCESSOR_GREEN, PREPROCESSOR_BLUE));
-    textCtrl->StyleSetBackground(STYLE_PREPROCESSOR, bg);
-
-    textCtrl->StyleSetFont(STYLE_NAMESPACE, font);
-    textCtrl->StyleSetForeground(STYLE_NAMESPACE,
-        wxColour(NAMESPACE_RED, NAMESPACE_GREEN, NAMESPACE_BLUE));
-    textCtrl->StyleSetBackground(STYLE_NAMESPACE, bg);
-
-    textCtrl->StyleSetFont(STYLE_NUMBER, font);
-    textCtrl->StyleSetForeground(STYLE_NUMBER,
-        wxColour(NUMBER_RED, NUMBER_GREEN, NUMBER_BLUE));
-    textCtrl->StyleSetBackground(STYLE_NUMBER, bg);
-
-    textCtrl->StyleSetFont(STYLE_OPERATOR, font);
-    textCtrl->StyleSetForeground(STYLE_OPERATOR,
-        wxColour(OPERATOR_RED, OPERATOR_GREEN, OPERATOR_BLUE));
-    textCtrl->StyleSetBackground(STYLE_OPERATOR, bg);
-
-    textCtrl->StyleSetFont(STYLE_FUNCTION, font);
-    textCtrl->StyleSetForeground(STYLE_FUNCTION,
-        wxColour(FUNCTION_RED, FUNCTION_GREEN, FUNCTION_BLUE));
-    textCtrl->StyleSetBackground(STYLE_FUNCTION, bg);
+    //indentation guides. After StyleClearAll they would use the text colour, which is far too loud
+    textCtrl->StyleSetForeground(wxSTC_STYLE_INDENTGUIDE, indentGuideColour);
+    textCtrl->StyleSetBackground(wxSTC_STYLE_INDENTGUIDE, bg);
 
     textCtrl->SetViewWhiteSpace(wxSTC_WS_INVISIBLE);
     textCtrl->SetViewEOL(false);
-    textCtrl->SetCaretLineVisible(false);
+    //caret line highlight. It is configured here (not only in the MainFrame constructor) so that
+    //applying a theme later on doesn't leave it switched off
+    textCtrl->SetCaretLineBackground(GetCaretLineBackgroundColour());
+    textCtrl->SetCaretLineVisible(true);
 }

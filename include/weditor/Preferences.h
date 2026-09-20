@@ -11,6 +11,7 @@
 #include <wx/wx.h>
 #include <wx/config.h>
 #include "ThemeSettings.h"
+#include "ThemedControls.h"
 
 class MainFrame;
 
@@ -28,8 +29,8 @@ class PreferencesFrame : public wxFrame {
     private:
         MainFrame* owner = nullptr;
         wxPanel* panel = nullptr;
-        wxChoice* autosaveToggle = nullptr;
-        wxChoice* openLastFileToggle = nullptr;
-        wxChoice* saveWindowStateToggle = nullptr;
-        wxChoice* themeChoice = nullptr;
+        ThemedChoice* autosaveToggle = nullptr;
+        ThemedChoice* openLastFileToggle = nullptr;
+        ThemedChoice* saveWindowStateToggle = nullptr;
+        ThemedChoice* themeChoice = nullptr;
 };

@@ -18,7 +18,7 @@ PreferencesFrame::PreferencesFrame(MainFrame* owner, const wxString& title)
     panel = new wxPanel(this);
     //autosave choice
     wxStaticText* autosaveLabel = new wxStaticText(panel, wxID_ANY, "Autosave:");
-    autosaveToggle = new wxChoice(panel, wxID_ANY);
+    autosaveToggle = new ThemedChoice(panel, wxID_ANY);
     autosaveToggle->Append("On");
     autosaveToggle->Append("Off");
     wxString autosaveValue = wxConfig::Get()->Read("Preferences/Autosave", "On");
@@ -26,7 +26,7 @@ PreferencesFrame::PreferencesFrame(MainFrame* owner, const wxString& title)
 
     //open last file on startup choice
     wxStaticText* openLastFileLabel = new wxStaticText(panel, wxID_ANY, "Open last file on startup:");
-    openLastFileToggle = new wxChoice(panel, wxID_ANY);
+    openLastFileToggle = new ThemedChoice(panel, wxID_ANY);
     openLastFileToggle->Append("On");
     openLastFileToggle->Append("Off");
     wxString openLastFileValue = wxConfig::Get()->Read("Preferences/OpenLastFile", "On");
@@ -34,7 +34,7 @@ PreferencesFrame::PreferencesFrame(MainFrame* owner, const wxString& title)
 
     //change theme choice
     wxStaticText* themeLabel = new wxStaticText(panel, wxID_ANY, "Theme:");
-    themeChoice = new wxChoice(panel, wxID_ANY);
+    themeChoice = new ThemedChoice(panel, wxID_ANY);
     themeChoice->Append("Dark");
     themeChoice->Append("Light");
     wxString themeValue = wxConfig::Get()->Read("Preferences/Theme", "Dark");
@@ -43,7 +43,7 @@ PreferencesFrame::PreferencesFrame(MainFrame* owner, const wxString& title)
 
     //save MainFrame size and position toggle
     wxStaticText* saveWindowStateLabel = new wxStaticText(panel, wxID_ANY, "Save window size and position:");
-    saveWindowStateToggle = new wxChoice(panel, wxID_ANY);
+    saveWindowStateToggle = new ThemedChoice(panel, wxID_ANY);
     saveWindowStateToggle->Append("On");
     saveWindowStateToggle->Append("Off");
     wxString saveWindowStateValue = wxConfig::Get()->Read("Preferences/SaveWindowState", "On");
@@ -51,13 +51,13 @@ PreferencesFrame::PreferencesFrame(MainFrame* owner, const wxString& title)
 
 
     //restere default button
-    wxButton* restoreDefault = new wxButton(panel, wxID_ANY, "Restore defaults");
+    ThemedButton* restoreDefault = new ThemedButton(panel, wxID_ANY, "Restore defaults");
     restoreDefault->Bind(wxEVT_BUTTON, &PreferencesFrame::OnRestoreDefault, this);
 
     //apply button, ok button and cancel button
-    wxButton* applyButton = new wxButton(panel, wxID_APPLY, "Apply");
-    wxButton* okButton = new wxButton(panel, wxID_OK, "OK");
-    wxButton* cancelButton = new wxButton(panel, wxID_CANCEL, "Cancel");
+    ThemedButton* applyButton = new ThemedButton(panel, wxID_APPLY, "Apply");
+    ThemedButton* okButton = new ThemedButton(panel, wxID_OK, "OK");
+    ThemedButton* cancelButton = new ThemedButton(panel, wxID_CANCEL, "Cancel");
     applyButton->Bind(wxEVT_BUTTON, &PreferencesFrame::OnApply, this);
     okButton->Bind(wxEVT_BUTTON, &PreferencesFrame::OnOk, this);
     cancelButton->Bind(wxEVT_BUTTON, &PreferencesFrame::OnCancel, this);
@@ -97,13 +97,10 @@ PreferencesFrame::PreferencesFrame(MainFrame* owner, const wxString& title)
     cancelButton->SetBackgroundColour(buttonBg);
     cancelButton->SetForegroundColour(buttonFg);
     //setting min sizes up
-    autosaveLabel->SetMinSize(wxSize(70, -1));
+    //the labels get no fixed width: a fixed pixel width cuts the text off with bigger fonts or on scaled displays
     autosaveToggle->SetMinSize(wxSize(100, -1));
-    openLastFileLabel->SetMinSize(wxSize(150, -1));
     openLastFileToggle->SetMinSize(wxSize(100, -1));
-    themeLabel->SetMinSize(wxSize(50, -1));
     themeChoice->SetMinSize(wxSize(100, -1));
-    saveWindowStateLabel->SetMinSize(wxSize(200, -1));
     saveWindowStateToggle->SetMinSize(wxSize(100, -1));
 
     //setup sizers
@@ -184,10 +181,10 @@ void PreferencesFrame::ApplyTheme()
     SetForegroundColour(text);
 
     for (wxWindow* child : panel->GetChildren()) {
-        if (wxButton* button = dynamic_cast<wxButton*>(child)) {
+        if (ThemedButton* button = dynamic_cast<ThemedButton*>(child)) {
             button->SetBackgroundColour(buttonBg);
             button->SetForegroundColour(buttonFg);
-        } else if (wxChoice* choice = dynamic_cast<wxChoice*>(child)) {
+        } else if (ThemedChoice* choice = dynamic_cast<ThemedChoice*>(child)) {
             choice->SetBackgroundColour(buttonBg);
             choice->SetForegroundColour(buttonFg);
         } else {
@@ -223,12 +220,13 @@ void PreferencesFrame::OnRestoreDefault(wxCommandEvent&) {
         return;
     }
 
+    //these must match the default values used when reading the config ("On")
     if (autosaveToggle != nullptr) {
-        autosaveToggle->SetStringSelection("Off");
+        autosaveToggle->SetStringSelection("On");
     }
 
     if (openLastFileToggle != nullptr) {
-        openLastFileToggle->SetStringSelection("Off");
+        openLastFileToggle->SetStringSelection("On");
     }
 
     if (themeChoice != nullptr) {
@@ -236,7 +234,7 @@ void PreferencesFrame::OnRestoreDefault(wxCommandEvent&) {
     }
 
     if (saveWindowStateToggle != nullptr) {
-        saveWindowStateToggle->SetStringSelection("Off");
+        saveWindowStateToggle->SetStringSelection("On");
     }
 
     wxMessageBox(

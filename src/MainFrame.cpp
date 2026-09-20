@@ -10,9 +10,56 @@
 #include <weditor/MainFrame.h>
 #include <weditor/EmbeddedIcons.h>
 #include <wx/mstream.h>
+#include <wx/display.h>
+#ifdef __WXOSX_COCOA__
+#include <objc/message.h>
+#include <objc/runtime.h>
+#endif
 
 namespace
 {
+//macOS draws the title bar, scrollbars, menus and native controls according to the system appearance
+//(light/dark). The app has its own theme setting, so make macOS use the same one. Without this a light
+//app theme on a dark macOS mixes light editor colours with dark native parts and looks washed out.
+//Same as [NSApp setAppearance:[NSAppearance appearanceNamed:name]], written with the Objective-C runtime
+//so this file can stay a plain .cpp. (With wxWidgets 3.3 or newer wxTheApp->SetAppearance() does the same.)
+//Does nothing on other platforms.
+void ApplyNativeAppearance(const wxString& theme)
+{
+#ifdef __WXOSX_COCOA__
+    Class applicationClass = objc_getClass("NSApplication");
+    Class appearanceClass = objc_getClass("NSAppearance");
+    Class stringClass = objc_getClass("NSString");
+    if (applicationClass == nullptr || appearanceClass == nullptr || stringClass == nullptr)
+    {
+        return;
+    }
+
+    id application = ((id (*)(id, SEL))objc_msgSend)((id)applicationClass, sel_registerName("sharedApplication"));
+    if (application == nullptr)
+    {
+        return;
+    }
+
+    //NSApplication.appearance exists since macOS 10.14
+    const bool supported = ((BOOL (*)(id, SEL, SEL))objc_msgSend)(
+        application, sel_registerName("respondsToSelector:"), sel_registerName("setAppearance:"));
+    if (!supported)
+    {
+        return;
+    }
+
+    const char* name = (theme == "Light") ? "NSAppearanceNameAqua" : "NSAppearanceNameDarkAqua";
+    id nameString = ((id (*)(id, SEL, const char*))objc_msgSend)(
+        (id)stringClass, sel_registerName("stringWithUTF8String:"), name);
+    id appearance = ((id (*)(id, SEL, id))objc_msgSend)(
+        (id)appearanceClass, sel_registerName("appearanceNamed:"), nameString);
+    ((void (*)(id, SEL, id))objc_msgSend)(application, sel_registerName("setAppearance:"), appearance);
+#else
+    wxUnusedVar(theme);
+#endif
+}
+
 wxBitmap LoadToolbarIcon(const unsigned char* data, std::size_t length, const wxArtID& fallbackArtId)
 {
     wxMemoryInputStream input(data, length);
@@ -30,7 +77,8 @@ wxBitmap LoadToolbarIcon(const unsigned char* data, std::size_t length, const wx
 class App : public wxApp
 {
     public:
-        bool OnInit();
+        bool OnInit() override;
+        int OnExit() override;
 };
 
 wxIMPLEMENT_APP(App);
@@ -73,7 +121,8 @@ MainFrame::MainFrame(const wxString& title)
     menuBar->Append(menuHelp, "&Help");
     SetMenuBar(menuBar);
 
-    textCtrl = new wxStyledTextCtrl(panel, wxID_ANY);
+    //no native border: on Windows the default one is a light 3D frame around the whole editor
+    textCtrl = new wxStyledTextCtrl(panel, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxBORDER_NONE);
     textCtrl->SetWrapMode(wxSTC_WRAP_NONE);
     //we will display horizontal scroll bar only when needed
     textCtrl->SetScrollWidth(1);
@@ -84,23 +133,22 @@ MainFrame::MainFrame(const wxString& title)
     #ifdef __WXMSW__
     SetIcon(wxIcon("app.ico", wxBITMAP_TYPE_ICO));
     #endif
-    //set caret line to visible with a subtle background color
-    textCtrl->SetCaretLineBackground(ThemeSettings::GetCaretLineBackgroundColour());
-    constexpr bool CARET_LINE_VISIBLE = true;
-    textCtrl->SetCaretLineVisible(CARET_LINE_VISIBLE);
-    textCtrl->SetIndentationGuides(true);
+    //the caret line highlight is set up by ThemeSettings::ApplyTheme (so it survives theme changes)
+//LOOKBOTH also draws the guides on empty lines (using the indentation of the lines around them),
+    //with plain "true" the guides break on every empty line
+    textCtrl->SetIndentationGuides(wxSTC_IV_LOOKBOTH);
     highlightTimer.SetOwner(this);
         Bind(wxEVT_TIMER, [this](wxTimerEvent&) {
             HighlightSyntax();
         }, highlightTimer.GetId());
     
-    newFile = new wxButton(panel, wxID_ANY, "New file");
-    saveAs = new wxButton(panel, wxID_ANY, "Save as");
-    save = new wxButton(panel, wxID_ANY, "Save");
-    open = new wxButton(panel, wxID_ANY, "Open");
+    newFile = new ThemedButton(panel, wxID_ANY, "New file");
+    saveAs = new ThemedButton(panel, wxID_ANY, "Save as");
+    save = new ThemedButton(panel, wxID_ANY, "Save");
+    open = new ThemedButton(panel, wxID_ANY, "Open");
     //undo and redo buttons (ctrl+z and ctrl+y)
-    undo = new wxButton(panel, wxID_ANY, "");
-    redo = new wxButton(panel, wxID_ANY, "");
+    undo = new ThemedButton(panel, wxID_ANY, "");
+    redo = new ThemedButton(panel, wxID_ANY, "");
 
     wxBitmap undoBmp = LoadToolbarIcon(EmbeddedIcons::edit_undo_png, EmbeddedIcons::edit_undo_png_len, wxART_UNDO);
     wxBitmap redoBmp = LoadToolbarIcon(EmbeddedIcons::edit_redo_png, EmbeddedIcons::edit_redo_png_len, wxART_REDO);
@@ -114,7 +162,7 @@ MainFrame::MainFrame(const wxString& title)
 
     //language choice dropdown
     std::vector<wxString> languages = HighlighterFactory::GetAvailableLanguages();
-    languageChoice = new wxChoice(panel, wxID_ANY);
+    languageChoice = new ThemedChoice(panel, wxID_ANY);
     for (const auto& lang : languages) {
         languageChoice->Append(lang);
     }
@@ -202,6 +250,8 @@ MainFrame::MainFrame(const wxString& title)
 
 void MainFrame::ApplyTheme()
 {
+    ApplyNativeAppearance(ThemeSettings::GetCurrentTheme());
+
     wxColour background = ThemeSettings::GetBackgroundColour();
     wxColour text = ThemeSettings::GetTextColour();
     wxColour buttonBackground = ThemeSettings::GetButtonBackgroundColour();
@@ -216,7 +266,8 @@ void MainFrame::ApplyTheme()
 
     if (textCtrl != nullptr) {
         ThemeSettings::ApplyTheme(textCtrl);
-        textCtrl->SetCaretLineBackground(ThemeSettings::GetCaretLineBackgroundColour());
+        //ThemeSettings::ApplyTheme resets the line number margin to a fixed width
+        UpdateLineNumberMargin();
     }
 
     if (newFile != nullptr) {
@@ -247,6 +298,8 @@ void MainFrame::ApplyTheme()
         languageChoice->SetBackgroundColour(buttonBackground);
         languageChoice->SetForegroundColour(buttonForeground);
     }
+
+    Refresh();
 }
 
 MainFrame::~MainFrame()
@@ -263,7 +316,7 @@ const::wxString MainFrame::wildcard =
     "C files (*.c;*.h)|*.c;*.h|"
     "Java files (*.java)|*.java|"
     "Python files (*.py)|*.py|"
-    "Bash files (*.sh)|*sh|"
+    "Bash files (*.sh)|*.sh|"
     "Batch files (*.bat;*.cmd)|*.bat;*.cmd|"
     "Assembly files (*.asm;*.s)|*.asm;*.s|"
     "SQL files (*.sql)|*.sql";
@@ -273,17 +326,27 @@ bool App::OnInit() {
     SetExitOnFrameDelete(true);
     wxInitAllImageHandlers();
     wxConfig::Set(new wxConfig("wEditor"));
+    ApplyNativeAppearance(wxConfig::Get()->Read("Preferences/Theme", "Dark"));
 
     MainFrame* mainFrame = new MainFrame("wEditor");
     mainFrame->SetClientSize(mainFrame->FromDIP(wxSize(800, 600)));
     mainFrame->RestoreWindowState();
     mainFrame->Show();
-    mainFrame->RestoreLastFile(); //restore last opened file on startup
 
     if (argc > 1) {
+        //a file passed on the command line wins over the last session's file
         mainFrame->OpenFile(argv[1]);
+    } else {
+        mainFrame->RestoreLastFile(); //restore last opened file on startup
     }
     return true;
+}
+
+int App::OnExit()
+{
+    //we created the global config with new, so we have to delete it
+    delete wxConfig::Set(nullptr);
+    return wxApp::OnExit();
 }
 
 void MainFrame::UpdateFrameTitle()
@@ -314,9 +377,21 @@ bool MainFrame::SaveToPath(const wxString& path, bool showSuccessMessage)
     }
 
     file.Close();
+    const bool pathChanged = (path != currentFilePath);
     currentFilePath = path;
     UpdateFrameTitle();
     textCtrl->SetSavePoint();
+
+    //a newly named file (new file / save as) gets the highlighting for its extension.
+    //an unknown extension keeps whatever language is selected right now
+    if (pathChanged)
+    {
+        const wxString detectedLanguage = GetLanguageForExtension(path);
+        if (detectedLanguage != "Text")
+        {
+            SetLanguage(detectedLanguage);
+        }
+    }
 
     wxConfigBase* config = wxConfigBase::Get();
     if (config != nullptr)
@@ -394,22 +469,25 @@ void MainFrame::LoadFile(const wxString& path) {
         return;
     }
 
+    const wxFileOffset fileLength = file.Length();
     wxString text;
-    file.ReadAll(&text);
+    const bool readOk = file.ReadAll(&text);
     file.Close();
+
+    //ReadAll returns false on a read error and leaves the string empty. Stop here, otherwise the
+    //editor shows an empty document for a non-empty file and the next save would overwrite it with nothing
+    if (!readOk || (text.IsEmpty() && fileLength > 0))
+    {
+        wxMessageBox(wxString::Format("Failed to read file as text: %s", path), "wEditor", wxOK | wxICON_ERROR);
+        return;
+    }
 
     textCtrl->SetValue(text);
     textCtrl->Refresh();
     currentFilePath = path;
     UpdateFrameTitle();
     //applying syntax highlighting according to file type
-    languageChoice->SetStringSelection(GetLanguageForExtension(path));
-
-    delete currentHighlighter;
-    currentHighlighter = nullptr;
-    currentLanguage = languageChoice->GetStringSelection();
-    currentHighlighter = HighlighterFactory::CreateHighlighter(currentLanguage);
-    HighlightSyntax();
+    SetLanguage(GetLanguageForExtension(path));
     textCtrl->EmptyUndoBuffer();
     textCtrl->SetSavePoint();
     UpdateLineNumberMargin();
@@ -471,7 +549,14 @@ void MainFrame::RestoreWindowState()
     config->Read("WindowState/Y", &y, static_cast<long>(wxDefaultCoord));
 
     const wxSize restoredSize(static_cast<int>(width), static_cast<int>(height));
-    if (x != wxDefaultCoord && y != wxDefaultCoord)
+
+    //ignore a saved position that is no longer on any screen (e.g. an unplugged monitor).
+    //we test a point in the title bar, not the corner, because Windows reports a window that is
+    //snapped to a screen edge with a few pixels of invisible border outside the screen
+    const bool positionIsOnScreen = x != wxDefaultCoord && y != wxDefaultCoord &&
+        wxDisplay::GetFromPoint(wxPoint(static_cast<int>(x) + restoredSize.GetWidth() / 2,
+                                        static_cast<int>(y) + 10)) != wxNOT_FOUND;
+    if (positionIsOnScreen)
     {
         SetSize(static_cast<int>(x), static_cast<int>(y), restoredSize.GetWidth(), restoredSize.GetHeight());
     }
@@ -540,6 +625,19 @@ void MainFrame::OnText(wxCommandEvent& event) {
     textCtrl->SetScrollWidth(1);
     event.Skip();
 }
+//select a language in the dropdown and switch the highlighter to it
+void MainFrame::SetLanguage(const wxString& language) {
+    //if the language is not in the dropdown, fall back to its first entry (Text)
+    if (!languageChoice->SetStringSelection(language)) {
+        languageChoice->SetSelection(0);
+    }
+
+    delete currentHighlighter;
+    currentHighlighter = nullptr;
+    currentLanguage = languageChoice->GetStringSelection();
+    currentHighlighter = HighlighterFactory::CreateHighlighter(currentLanguage);
+    HighlightSyntax();
+}
 void MainFrame::OnLanguageChange(wxCommandEvent&) {
     currentLanguage = languageChoice->GetStringSelection();
     delete currentHighlighter;
@@ -589,7 +687,7 @@ wxString MainFrame::GetLanguageForExtension(const wxString& filename) const {
         return "C#";
     } else if (ext == "c") {
         return "C";
-    } else if (ext == "java" || ext == "jav" || ext == "class") {
+    } else if (ext == "java" || ext == "jav") {
         return "Java";
     } else if (ext == "py") {
         return "Python";
@@ -713,7 +811,9 @@ bool IsFileSupported(const wxString& filename) {
         //executables and binaries
         "exe", "dll", "sys", "drv", "bin", "iso", "img", "raw",
         "msi", "msix", "appx", "apk", "ipa", "dmg", "so",
-        "deb", "rpm", "pkg", "msi", "app", "macho",
+        "deb", "rpm", "pkg", "app", "macho",
+        //compiled bytecode
+        "class",
         //virtual machines
         "vmdk", "vhd", "vhdx", "qcow2"
     };
@@ -778,14 +878,28 @@ void MainFrame::OnDropFiles(const wxArrayString& filenames)
 {
     if (filenames.GetCount() > 0)
     {
-        OpenFile(filenames[0]);
+        //OpenFile can show modal dialogs (unsaved changes, unsupported format). Do that after the
+        //drop handler has returned, otherwise the window the file was dragged from stays blocked
+        const wxString filename = filenames[0];
+        CallAfter([this, filename]() { OpenFile(filename); });
     }
 }
 
 //show preferences window
 void MainFrame::OnPreferences(wxCommandEvent&)
-{    
-    PreferencesFrame* preferencesFrame = new PreferencesFrame(this, "Preferences");
+{
+    //only one preferences window at a time, bring the existing one forward instead
+    if (preferencesFrame)
+    {
+        if (preferencesFrame->IsIconized())
+        {
+            preferencesFrame->Iconize(false);
+        }
+        preferencesFrame->Raise();
+        return;
+    }
+
+    preferencesFrame = new PreferencesFrame(this, "Preferences");
     preferencesFrame->SetClientSize(preferencesFrame->FromDIP(wxSize(400, 300)));
     preferencesFrame->Show();
 }
@@ -808,15 +922,16 @@ void MainFrame::OnClose(wxCloseEvent& event)
 
     if (textCtrl != nullptr && textCtrl->GetModify())
     {
+        //Veto() is only allowed when the close can be vetoed (it can't for a forced close)
         if (autosaveValue == "On" && !currentFilePath.IsEmpty())
         {
-            if (!SaveToPath(currentFilePath, false))
+            if (!SaveToPath(currentFilePath, false) && event.CanVeto())
             {
                 event.Veto();
                 return;
             }
         }
-        else if (!PromptToSaveChanges())
+        else if (!PromptToSaveChanges() && event.CanVeto())
         {
             event.Veto();
             return;
@@ -836,5 +951,6 @@ void MainFrame::OnClose(wxCloseEvent& event)
 //close app
 void MainFrame::OnExit(wxCommandEvent&)
 {
-    Close(true);
+    //not Close(true): a forced close can't be vetoed, but OnClose relies on Veto() to keep the window open
+    Close();
 }

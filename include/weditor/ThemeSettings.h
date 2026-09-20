@@ -31,10 +31,11 @@ public:
     static constexpr int DARK_BUTTON_BG_GREEN = 110;
     static constexpr int DARK_BUTTON_BG_BLUE = 110;
 
-    // Match the grayscale used by the embedded undo/redo toolbar icons.
-    static constexpr int DARK_BUTTON_FG_RED = 200;
-    static constexpr int DARK_BUTTON_FG_GREEN = 200;
-    static constexpr int DARK_BUTTON_FG_BLUE = 200;
+    // Text and icon colour of the buttons. (The undo/redo icons are recoloured with it,
+    // so it doesn't have to match the grayscale of the embedded icons any more.)
+    static constexpr int DARK_BUTTON_FG_RED = 240;
+    static constexpr int DARK_BUTTON_FG_GREEN = 240;
+    static constexpr int DARK_BUTTON_FG_BLUE = 240;
 
     //light theme colors
     static constexpr int LIGHT_BG_RED = 255;

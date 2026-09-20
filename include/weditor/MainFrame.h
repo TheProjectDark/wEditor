@@ -16,7 +16,9 @@
 #include <wx/artprov.h>
 #include <unordered_set>
 #include <wx/filename.h>
+#include <wx/weakref.h>
 #include "ThemeSettings.h"
+#include "ThemedControls.h"
 #include "SyntaxHighlighter/SyntaxHighlighter.h"
 #include "DragNDrop.h"
 #include "Preferences.h"
@@ -37,16 +39,18 @@ class MainFrame : public wxFrame
     private:
         wxPanel* panel;
         wxStyledTextCtrl* textCtrl;
-        wxChoice* languageChoice;
-        wxButton* newFile;
-        wxButton* saveAs;
-        wxButton* save;
-        wxButton* open;
-        wxButton* undo;
-        wxButton* redo;
+        ThemedChoice* languageChoice;
+        ThemedButton* newFile;
+        ThemedButton* saveAs;
+        ThemedButton* save;
+        ThemedButton* open;
+        ThemedButton* undo;
+        ThemedButton* redo;
         SyntaxHighlighter* currentHighlighter;
         wxString currentLanguage;
         wxString currentFilePath;
+        //the open preferences window (if any), so we never open two of them
+        wxWeakRef<PreferencesFrame> preferencesFrame;
         //debounce for highlight
         wxTimer highlightTimer;
 
@@ -73,6 +77,7 @@ class MainFrame : public wxFrame
         void OnLanguageChange(wxCommandEvent& event);
         void UpdateFrameTitle();
         void HighlightSyntax();
+        void SetLanguage(const wxString& language);
         wxString GetLanguageForExtension(const wxString& filename) const;
         void UpdateLineNumberMargin();
 };
