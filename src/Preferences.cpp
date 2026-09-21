@@ -21,7 +21,7 @@ PreferencesFrame::PreferencesFrame(MainFrame* owner, const wxString& title)
     autosaveToggle = new ThemedChoice(panel, wxID_ANY);
     autosaveToggle->Append("On");
     autosaveToggle->Append("Off");
-    wxString autosaveValue = wxConfig::Get()->Read("Preferences/Autosave", "On");
+    wxString autosaveValue = wxConfig::Get()->Read("Preferences/Autosave", "Off");
     autosaveToggle->SetStringSelection(autosaveValue);
 
     //open last file on startup choice
@@ -29,7 +29,7 @@ PreferencesFrame::PreferencesFrame(MainFrame* owner, const wxString& title)
     openLastFileToggle = new ThemedChoice(panel, wxID_ANY);
     openLastFileToggle->Append("On");
     openLastFileToggle->Append("Off");
-    wxString openLastFileValue = wxConfig::Get()->Read("Preferences/OpenLastFile", "On");
+    wxString openLastFileValue = wxConfig::Get()->Read("Preferences/OpenLastFile", "Off");
     openLastFileToggle->SetStringSelection(openLastFileValue);
 
     //change theme choice
@@ -46,7 +46,7 @@ PreferencesFrame::PreferencesFrame(MainFrame* owner, const wxString& title)
     saveWindowStateToggle = new ThemedChoice(panel, wxID_ANY);
     saveWindowStateToggle->Append("On");
     saveWindowStateToggle->Append("Off");
-    wxString saveWindowStateValue = wxConfig::Get()->Read("Preferences/SaveWindowState", "On");
+    wxString saveWindowStateValue = wxConfig::Get()->Read("Preferences/SaveWindowState", "Off");
     saveWindowStateToggle->SetStringSelection(saveWindowStateValue);
 
 
@@ -222,11 +222,11 @@ void PreferencesFrame::OnRestoreDefault(wxCommandEvent&) {
 
     //these must match the default values used when reading the config ("On")
     if (autosaveToggle != nullptr) {
-        autosaveToggle->SetStringSelection("On");
+        autosaveToggle->SetStringSelection("Off");
     }
 
     if (openLastFileToggle != nullptr) {
-        openLastFileToggle->SetStringSelection("On");
+        openLastFileToggle->SetStringSelection("Off");
     }
 
     if (themeChoice != nullptr) {
@@ -234,7 +234,7 @@ void PreferencesFrame::OnRestoreDefault(wxCommandEvent&) {
     }
 
     if (saveWindowStateToggle != nullptr) {
-        saveWindowStateToggle->SetStringSelection("On");
+        saveWindowStateToggle->SetStringSelection("Off");
     }
 
     wxMessageBox(
