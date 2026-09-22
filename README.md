@@ -46,7 +46,7 @@ xattr -d com.apple.quarantine  ~/Downloads/wEditor.app
 
 | Platform                             | Architecture                        |
 |--------------------------------------|-------------------------------------|
-| Linux (Debian 13+)                   | x86-64, ARM64                       |
+| Linux (Debian 11+/Ubuntu 22.04+)     | x86-64, ARM64                       |
 | Windows 7+                           | x86-64, ARM64 (Win11)               |
 | macOS 12+ (Monterey and newer)       | Intel(x86-64), Apple Silicon(ARM64) |
 
