@@ -69,7 +69,6 @@ class MainFrame : public wxFrame
         std::vector<EditorTab> tabs;
         int activeTabId = wxID_NONE;
         int nextTabId = 1;
-        int nextUntitledNumber = 1;
         //the open preferences window (if any), so we never open two of them
         wxWeakRef<PreferencesFrame> preferencesFrame;
         //debounce for highlight

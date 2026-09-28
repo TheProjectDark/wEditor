@@ -335,14 +335,22 @@ MainFrame::EditorTab* MainFrame::FindTab(int tabId)
 int MainFrame::AddTab(const wxString& filePath, const wxString& content, const wxString& language)
 {
     const int tabId = nextTabId++;
-    const wxString untitledName = filePath.IsEmpty()
-        ? (nextUntitledNumber == 1 ? wxString("Untitled")
-                                   : wxString::Format("Untitled %d", nextUntitledNumber))
-        : wxString();
+    wxString untitledName;
     if (filePath.IsEmpty())
     {
-        ++nextUntitledNumber;
+        for (int number = 1; untitledName.IsEmpty(); ++number)
+        {
+            const wxString candidate = number == 1
+                ? wxString("Untitled") : wxString::Format("Untitled %d", number);
+            const bool taken = std::any_of(tabs.begin(), tabs.end(),
+                [&candidate](const EditorTab& tab) { return tab.untitledName == candidate; });
+            if (!taken)
+            {
+                untitledName = candidate;
+            }
+        }
     }
+
 
     wxStyledTextCtrl* editor = new wxStyledTextCtrl(
         editorHost, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxBORDER_NONE);
