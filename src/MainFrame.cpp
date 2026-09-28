@@ -11,6 +11,7 @@
 #include <weditor/EmbeddedIcons.h>
 #include <wx/mstream.h>
 #include <wx/display.h>
+#include <algorithm>
 #ifdef __WXOSX_COCOA__
 #include <objc/message.h>
 #include <objc/runtime.h>
@@ -101,6 +102,27 @@ MainFrame::MainFrame(const wxString& title)
     
     SetBackgroundColour(background);
     SetForegroundColour(text);
+
+    editorHost = new wxPanel(panel);
+    editorHost->SetBackgroundColour(ThemeSettings::GetEditorBackgroundColour());
+    editorSizer = new wxBoxSizer(wxVERTICAL);
+    editorHost->SetSizer(editorSizer);
+
+    tabsBar = new wxPanel(panel);
+    tabsBar->SetBackgroundColour(background);
+    wxBoxSizer* tabsBarSizer = new wxBoxSizer(wxHORIZONTAL);
+    tabScroll = new wxScrolledWindow(tabsBar, wxID_ANY, wxDefaultPosition, wxDefaultSize,
+                                     wxHSCROLL | wxBORDER_NONE);
+    tabScroll->SetScrollRate(20, 0);
+    tabSizer = new wxBoxSizer(wxHORIZONTAL);
+    tabScroll->SetSizer(tabSizer);
+    addTabButton = new ThemedButton(tabsBar, wxID_ANY, "+");
+    addTabButton->SetMinSize(FromDIP(wxSize(24, 18)));
+    addTabButton->SetMaxSize(FromDIP(wxSize(24, 18)));
+    addTabButton->Bind(wxEVT_BUTTON, &MainFrame::OnNewTab, this);
+    tabsBarSizer->Add(tabScroll, 1, wxEXPAND | wxRIGHT, FromDIP(4));
+    tabsBarSizer->Add(addTabButton, 0, wxALIGN_CENTER_VERTICAL);
+    tabsBar->SetSizer(tabsBarSizer);
     // create menu
     wxMenu *menuFile = new wxMenu;
     menuFile->Append(wxID_NEW);
@@ -122,21 +144,11 @@ MainFrame::MainFrame(const wxString& title)
     SetMenuBar(menuBar);
 
     //no native border: on Windows the default one is a light 3D frame around the whole editor
-    textCtrl = new wxStyledTextCtrl(panel, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxBORDER_NONE);
-    textCtrl->SetWrapMode(wxSTC_WRAP_NONE);
-    //we will display horizontal scroll bar only when needed
-    textCtrl->SetScrollWidth(1);
-    textCtrl->SetScrollWidthTracking(true);
-
-    ThemeSettings::ApplyTheme(textCtrl);
+    textCtrl = nullptr;
     //setting icon for Microsoft Windows
     #ifdef __WXMSW__
     SetIcon(wxIcon("app.ico", wxBITMAP_TYPE_ICO));
     #endif
-    //the caret line highlight is set up by ThemeSettings::ApplyTheme (so it survives theme changes)
-//LOOKBOTH also draws the guides on empty lines (using the indentation of the lines around them),
-    //with plain "true" the guides break on every empty line
-    textCtrl->SetIndentationGuides(wxSTC_IV_LOOKBOTH);
     highlightTimer.SetOwner(this);
         Bind(wxEVT_TIMER, [this](wxTimerEvent&) {
             HighlightSyntax();
@@ -155,10 +167,6 @@ MainFrame::MainFrame(const wxString& title)
 
     undo->SetBitmap(undoBmp);
     redo->SetBitmap(redoBmp);
-
-    //enable drag and drop
-    DragNDrop* dropTarget = new DragNDrop(this);
-    textCtrl->SetDropTarget(dropTarget);
 
     //language choice dropdown
     std::vector<wxString> languages = HighlighterFactory::GetAvailableLanguages();
@@ -208,7 +216,8 @@ MainFrame::MainFrame(const wxString& title)
     topSizer->Add(rightButtonSizer, 0, wxALIGN_CENTER_VERTICAL | wxRIGHT, 5);
     topSizer->Add(languageChoice, 0, wxALIGN_CENTER_VERTICAL);
     mainSizer->Add(topSizer, 0, wxEXPAND | wxALL, 5);
-    mainSizer->Add(textCtrl, 1, wxEXPAND | wxALL, 5);
+    mainSizer->Add(tabsBar, 0, wxEXPAND | wxLEFT | wxRIGHT, 5);
+    mainSizer->Add(editorHost, 1, wxEXPAND | wxALL, 5);
     panel->SetSizer(mainSizer);
     mainSizer->SetSizeHints(this);
     //set small size for undo and redo buttons
@@ -217,13 +226,8 @@ MainFrame::MainFrame(const wxString& title)
 
     languageChoice->SetMinSize(wxSize(140, -1));
 
-    //tab
-    textCtrl->SetUseTabs(false);
-    textCtrl->SetTabWidth(4);
-    textCtrl->SetIndent(4);
-    textCtrl->SetTabIndents(true);
-    textCtrl->SetBackSpaceUnIndents(true);
-    textCtrl->Bind(wxEVT_STC_CHARADDED, &MainFrame::OnCharAdded, this);
+    AddTab();
+    ActivateTab(tabs.back().id);
 
     //setup bindings
     newFile->Bind(wxEVT_BUTTON, &MainFrame::OnNewFile, this);
@@ -243,7 +247,6 @@ MainFrame::MainFrame(const wxString& title)
     Bind(wxEVT_MENU, &MainFrame::OnPreferences, this, wxID_PREFERENCES);
     Bind(wxEVT_MENU, &MainFrame::OnExit, this, wxID_EXIT);
     Bind(wxEVT_MENU, &MainFrame::OnAbout, this, wxID_ABOUT);
-    Bind(wxEVT_STC_CHANGE, &MainFrame::OnText, this);
     Bind(wxEVT_CLOSE_WINDOW, &MainFrame::OnClose, this);
 
 }
@@ -261,11 +264,16 @@ void MainFrame::ApplyTheme()
         panel->SetBackgroundColour(background);
         panel->SetForegroundColour(text);
     }
+    if (editorHost != nullptr) {
+        editorHost->SetBackgroundColour(ThemeSettings::GetEditorBackgroundColour());
+    }
     SetBackgroundColour(background);
     SetForegroundColour(text);
 
+    for (const EditorTab& tab : tabs) {
+        ThemeSettings::ApplyTheme(tab.editor);
+    }
     if (textCtrl != nullptr) {
-        ThemeSettings::ApplyTheme(textCtrl);
         //ThemeSettings::ApplyTheme resets the line number margin to a fixed width
         UpdateLineNumberMargin();
     }
@@ -299,6 +307,10 @@ void MainFrame::ApplyTheme()
         languageChoice->SetForegroundColour(buttonForeground);
     }
 
+    if (tabsBar != nullptr) {
+        UpdateTabTheme();
+    }
+
     Refresh();
 }
 
@@ -306,6 +318,218 @@ MainFrame::~MainFrame()
 {
     delete currentHighlighter;
     currentHighlighter = nullptr;
+}
+
+MainFrame::EditorTab* MainFrame::FindTab(int tabId)
+{
+    for (EditorTab& tab : tabs)
+    {
+        if (tab.id == tabId)
+        {
+            return &tab;
+        }
+    }
+    return nullptr;
+}
+
+int MainFrame::AddTab(const wxString& filePath, const wxString& content, const wxString& language)
+{
+    const int tabId = nextTabId++;
+    const wxString untitledName = filePath.IsEmpty()
+        ? (nextUntitledNumber == 1 ? wxString("Untitled")
+                                   : wxString::Format("Untitled %d", nextUntitledNumber))
+        : wxString();
+    if (filePath.IsEmpty())
+    {
+        ++nextUntitledNumber;
+    }
+
+    wxStyledTextCtrl* editor = new wxStyledTextCtrl(
+        editorHost, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxBORDER_NONE);
+    editor->SetWrapMode(wxSTC_WRAP_NONE);
+    editor->SetScrollWidth(1);
+    editor->SetScrollWidthTracking(true);
+    ThemeSettings::ApplyTheme(editor);
+    //LOOKBOTH also draws guides on empty lines using the indentation of nearby lines.
+    editor->SetIndentationGuides(wxSTC_IV_LOOKBOTH);
+    editor->SetUseTabs(false);
+    editor->SetTabWidth(4);
+    editor->SetIndent(4);
+    editor->SetTabIndents(true);
+    editor->SetBackSpaceUnIndents(true);
+    editor->Bind(wxEVT_STC_CHARADDED, &MainFrame::OnCharAdded, this);
+    editor->Bind(wxEVT_STC_CHANGE, &MainFrame::OnText, this);
+    editor->Bind(wxEVT_KEY_DOWN, &MainFrame::OnEditorKeyDown, this);
+    editor->SetDropTarget(new DragNDrop(this));
+    if (!content.IsEmpty())
+    {
+        editor->SetValue(content);
+        editor->EmptyUndoBuffer();
+        editor->SetSavePoint();
+    }
+    editor->Hide();
+    editorSizer->Add(editor, 1, wxEXPAND);
+
+    ThemedTabButton* tabButton = new ThemedTabButton(tabScroll, wxID_ANY, untitledName);
+    tabButton->SetMinSize(FromDIP(wxSize(64, 26)));
+    tabButton->SetMaxSize(FromDIP(wxSize(220, 26)));
+    tabButton->SetToolTip(filePath.IsEmpty() ? untitledName : filePath);
+    tabButton->Bind(wxEVT_BUTTON, [this, tabId](wxCommandEvent&) { ActivateTab(tabId); });
+    tabButton->SetCloseHandler([this, tabId]() { CloseTab(tabId); });
+    tabSizer->Add(tabButton, 0, wxEXPAND | wxRIGHT, FromDIP(1));
+
+    EditorTab tab;
+    tab.id = tabId;
+    tab.editor = editor;
+    tab.tabButton = tabButton;
+    tab.filePath = filePath;
+    tab.untitledName = untitledName;
+    tab.language = language;
+    tabs.push_back(tab);
+
+    tabScroll->FitInside();
+    tabScroll->Layout();
+    tabScroll->Scroll(tabScroll->GetScrollRange(wxHORIZONTAL), 0);
+    UpdateTabLabels();
+    return tabId;
+}
+
+void MainFrame::ActivateTab(int tabId)
+{
+    EditorTab* tab = FindTab(tabId);
+    if (tab == nullptr || activeTabId == tabId)
+    {
+        return;
+    }
+
+    if (textCtrl != nullptr)
+    {
+        textCtrl->Hide();
+    }
+
+    activeTabId = tabId;
+    textCtrl = tab->editor;
+    currentFilePath = tab->filePath;
+    textCtrl->Show();
+    languageChoice->SetStringSelection(tab->language);
+    SetLanguage(tab->language);
+    UpdateFrameTitle();
+    UpdateLineNumberMargin();
+    UpdateTabTheme();
+    editorHost->Layout();
+    textCtrl->SetFocus();
+}
+
+void MainFrame::CloseTab(int tabId)
+{
+    EditorTab* tab = FindTab(tabId);
+    if (tab == nullptr)
+    {
+        return;
+    }
+
+    ActivateTab(tabId);
+    if (!PromptToSaveChanges())
+    {
+        return;
+    }
+
+    const auto it = std::find_if(tabs.begin(), tabs.end(), [tabId](const EditorTab& item) {
+        return item.id == tabId;
+    });
+    if (it == tabs.end())
+    {
+        return;
+    }
+    const std::size_t index = static_cast<std::size_t>(std::distance(tabs.begin(), it));
+    const int nextTabId = tabs.size() > 1
+        ? tabs[index == tabs.size() - 1 ? index - 1 : index + 1].id
+        : wxID_NONE;
+
+    editorSizer->Detach(it->editor);
+    tabSizer->Detach(it->tabButton);
+    it->editor->Destroy();
+    it->tabButton->Destroy();
+    tabs.erase(it);
+    textCtrl = nullptr;
+    activeTabId = wxID_NONE;
+
+    if (nextTabId != wxID_NONE)
+    {
+        ActivateTab(nextTabId);
+    }
+    else
+    {
+        const int emptyTabId = AddTab();
+        ActivateTab(emptyTabId);
+    }
+
+    tabScroll->FitInside();
+    tabScroll->Layout();
+    UpdateTabLabels();
+}
+
+void MainFrame::UpdateTabLabels()
+{
+    bool sizeChanged = false;
+    for (EditorTab& tab : tabs)
+    {
+        wxString label = tab.filePath.IsEmpty() ? tab.untitledName : wxFileName(tab.filePath).GetFullName();
+        if (label.IsEmpty())
+        {
+            label = "Untitled";
+        }
+        wxString visibleLabel = label;
+        if (visibleLabel.length() > 24)
+        {
+            visibleLabel = visibleLabel.Left(21) + "…";
+        }
+        if (tab.tabButton->GetLabel() != visibleLabel)
+        {
+            tab.tabButton->SetLabel(visibleLabel);
+            sizeChanged = true;
+        }
+        tab.tabButton->SetModified(tab.editor->GetModify());
+        tab.tabButton->SetToolTip(tab.filePath.IsEmpty() ? tab.untitledName : tab.filePath);
+    }
+
+    if (sizeChanged)
+    {
+        tabScroll->FitInside();
+        tabScroll->Layout();
+        tabScroll->Scroll(tabScroll->GetScrollRange(wxHORIZONTAL), 0);
+    }
+}
+
+void MainFrame::UpdateTabTheme()
+{
+    const wxColour inactiveBackground = ThemeSettings::GetBackgroundColour();
+    const wxColour inactiveForeground = ThemedControlsDetail::Mix(
+        ThemeSettings::GetTextColour(), inactiveBackground, 25);
+    const wxColour plusBackground = ThemeSettings::GetButtonBackgroundColour();
+    const wxColour plusForeground = ThemeSettings::GetButtonForegroundColour();
+    const wxColour activeBackground = ThemeSettings::GetEditorBackgroundColour();
+    const wxColour activeForeground = ThemeSettings::GetTextColour();
+    const wxColour behind = ThemeSettings::GetBackgroundColour();
+
+    tabsBar->SetBackgroundColour(behind);
+    tabScroll->SetBackgroundColour(behind);
+    addTabButton->SetBackgroundColour(plusBackground);
+    addTabButton->SetForegroundColour(plusForeground);
+    for (const EditorTab& tab : tabs)
+    {
+        const bool active = tab.id == activeTabId;
+        tab.tabButton->SetActive(active);
+        tab.tabButton->SetBackgroundColour(active ? activeBackground : inactiveBackground);
+        tab.tabButton->SetForegroundColour(active ? activeForeground : inactiveForeground);
+        tab.tabButton->Refresh();
+    }
+}
+
+void MainFrame::OnNewTab(wxCommandEvent&)
+{
+    const int tabId = AddTab();
+    ActivateTab(tabId);
 }
 
 //adding values to wildcard
@@ -379,8 +603,13 @@ bool MainFrame::SaveToPath(const wxString& path, bool showSuccessMessage)
     file.Close();
     const bool pathChanged = (path != currentFilePath);
     currentFilePath = path;
+    if (EditorTab* tab = FindTab(activeTabId))
+    {
+        tab->filePath = path;
+    }
     UpdateFrameTitle();
     textCtrl->SetSavePoint();
+    UpdateTabLabels();
 
     //a newly named file (new file / save as) gets the highlighting for its extension.
     //an unknown extension keeps whatever language is selected right now
@@ -482,15 +711,37 @@ void MainFrame::LoadFile(const wxString& path) {
         return;
     }
 
-    textCtrl->SetValue(text);
-    textCtrl->Refresh();
-    currentFilePath = path;
-    UpdateFrameTitle();
-    //applying syntax highlighting according to file type
-    SetLanguage(GetLanguageForExtension(path));
-    textCtrl->EmptyUndoBuffer();
-    textCtrl->SetSavePoint();
-    UpdateLineNumberMargin();
+    for (const EditorTab& tab : tabs)
+    {
+        if (!tab.filePath.IsEmpty() && wxFileName(tab.filePath).GetFullPath() == wxFileName(path).GetFullPath())
+        {
+            ActivateTab(tab.id);
+            return;
+        }
+    }
+
+    const wxString language = GetLanguageForExtension(path);
+    EditorTab* activeTab = FindTab(activeTabId);
+    if (activeTab != nullptr && activeTab->filePath.IsEmpty() &&
+        textCtrl->GetValue().IsEmpty() && !textCtrl->GetModify())
+    {
+        activeTab->filePath = path;
+        activeTab->untitledName.Clear();
+        activeTab->language = language;
+        textCtrl->SetValue(text);
+        textCtrl->EmptyUndoBuffer();
+        textCtrl->SetSavePoint();
+        SetLanguage(language);
+        textCtrl->Refresh();
+        UpdateFrameTitle();
+        UpdateLineNumberMargin();
+        UpdateTabLabels();
+        return;
+    }
+
+    const int tabId = AddTab(path, text, language);
+    ActivateTab(tabId);
+    UpdateTabLabels();
 }
 
 //restore last opened file on startup if enabled in preferences
@@ -612,6 +863,10 @@ void MainFrame::SaveWindowState() const
 //update line number margin width according to line count
 void MainFrame::UpdateLineNumberMargin()
 {
+    if (textCtrl == nullptr)
+    {
+        return;
+    }
     int lineCount = textCtrl->GetLineCount();
     int digits = std::to_string(lineCount).length();
     int width = textCtrl->TextWidth(wxSTC_STYLE_LINENUMBER, std::string(digits, '9'));
@@ -620,6 +875,16 @@ void MainFrame::UpdateLineNumberMargin()
 
 //syntax highlight functions
 void MainFrame::OnText(wxCommandEvent& event) {
+    wxStyledTextCtrl* changedEditor = dynamic_cast<wxStyledTextCtrl*>(event.GetEventObject());
+    if (changedEditor != nullptr)
+    {
+        UpdateTabLabels();
+    }
+    if (changedEditor != textCtrl)
+    {
+        event.Skip();
+        return;
+    }
     UpdateLineNumberMargin();
     highlightTimer.StartOnce(150);
     textCtrl->SetScrollWidth(1);
@@ -636,6 +901,10 @@ void MainFrame::SetLanguage(const wxString& language) {
     currentHighlighter = nullptr;
     currentLanguage = languageChoice->GetStringSelection();
     currentHighlighter = HighlighterFactory::CreateHighlighter(currentLanguage);
+    if (EditorTab* tab = FindTab(activeTabId))
+    {
+        tab->language = currentLanguage;
+    }
     HighlightSyntax();
 }
 void MainFrame::OnLanguageChange(wxCommandEvent&) {
@@ -643,10 +912,14 @@ void MainFrame::OnLanguageChange(wxCommandEvent&) {
     delete currentHighlighter;
     currentHighlighter = nullptr;
     currentHighlighter = HighlighterFactory::CreateHighlighter(currentLanguage);
+    if (EditorTab* tab = FindTab(activeTabId))
+    {
+        tab->language = currentLanguage;
+    }
     HighlightSyntax();
 }
 void MainFrame::HighlightSyntax() {
-    if (currentHighlighter) {
+    if (currentHighlighter && textCtrl != nullptr) {
         currentHighlighter->ApplyHighlight(textCtrl);
     }
 }
@@ -654,13 +927,18 @@ void MainFrame::HighlightSyntax() {
 //auto indent on enter
 void MainFrame::OnCharAdded(wxStyledTextEvent& event)
 {
+    wxStyledTextCtrl* editor = dynamic_cast<wxStyledTextCtrl*>(event.GetEventObject());
+    if (editor == nullptr)
+    {
+        return;
+    }
     if (event.GetKey() == '\n')
     {
-        int currentLine = textCtrl->GetCurrentLine();
+        int currentLine = editor->GetCurrentLine();
 
         if (currentLine > 0)
         {
-            wxString prevLine = textCtrl->GetLine(currentLine - 1);
+            wxString prevLine = editor->GetLine(currentLine - 1);
 
             wxString indent;
             for (wxChar c : prevLine)
@@ -671,9 +949,37 @@ void MainFrame::OnCharAdded(wxStyledTextEvent& event)
                     break;
             }
 
-            textCtrl->AddText(indent);
+            editor->AddText(indent);
         }
     }
+}
+
+void MainFrame::OnEditorKeyDown(wxKeyEvent& event)
+{
+    if (event.CmdDown() && event.GetKeyCode() == WXK_TAB)
+    {
+        if (tabs.size() > 1)
+        {
+            const auto it = std::find_if(tabs.begin(), tabs.end(), [this](const EditorTab& tab) {
+                return tab.id == activeTabId;
+            });
+            if (it != tabs.end())
+            {
+                const std::size_t index = static_cast<std::size_t>(std::distance(tabs.begin(), it));
+                const std::size_t offset = event.ShiftDown() ? tabs.size() - 1 : 1;
+                ActivateTab(tabs[(index + offset) % tabs.size()].id);
+            }
+        }
+        return;
+    }
+
+    if (event.CmdDown() && (event.GetKeyCode() == 'w' || event.GetKeyCode() == 'W'))
+    {
+        CloseTab(activeTabId);
+        return;
+    }
+
+    event.Skip();
 }
 
 //get language for syntax highlight by extension
@@ -710,60 +1016,11 @@ wxString MainFrame::GetLanguageForExtension(const wxString& filename) const {
     }
 }
 
-//new file function
-void MainFrame::OnNewFile(wxCommandEvent&) 
+//new file function creates an untitled document tab immediately
+void MainFrame::OnNewFile(wxCommandEvent&)
 {
-    if (!PromptToSaveChanges())
-    {
-        return;
-    }
-
-    const wxString restoreText = textCtrl->GetValue();
-    const wxString restoreFilePath = currentFilePath;
-    const wxString restoreLanguage = languageChoice->GetStringSelection();
-    const bool restoreModified = textCtrl->GetModify();
-
-    auto restoreDocument = [this, &restoreText, &restoreFilePath, &restoreLanguage, restoreModified]()
-    {
-        textCtrl->SetValue(restoreText);
-        currentFilePath = restoreFilePath;
-        UpdateFrameTitle();
-
-        languageChoice->SetStringSelection(restoreLanguage);
-
-        delete currentHighlighter;
-        currentHighlighter = nullptr;
-        currentLanguage = languageChoice->GetStringSelection();
-        currentHighlighter = HighlighterFactory::CreateHighlighter(currentLanguage);
-
-        HighlightSyntax();
-        UpdateLineNumberMargin();
-        textCtrl->EmptyUndoBuffer();
-
-        if (!restoreModified)
-        {
-            textCtrl->SetSavePoint();
-        }
-    };
-
-    textCtrl->SetValue("");
-    textCtrl->EmptyUndoBuffer();
-    textCtrl->SetSavePoint();
-    currentFilePath.Clear();
-    UpdateFrameTitle();
-    languageChoice->SetSelection(0);
-
-    delete currentHighlighter;
-    currentHighlighter = nullptr;
-    currentHighlighter = HighlighterFactory::CreateHighlighter("Text");
-
-    HighlightSyntax();
-    UpdateLineNumberMargin();
-
-    if (!SaveCurrentDocument())
-    {
-        restoreDocument();
-    }
+    const int tabId = AddTab();
+    ActivateTab(tabId);
 }
 
 //save as function
@@ -830,11 +1087,6 @@ void MainFrame::OpenFile(const wxString& path)
 
     if (!IsFileSupported(fullPath)) { //check if file is supported
         wxMessageBox("wEditor does not support this file format. Please select a text or code file.", "Unsupported Format", wxOK | wxICON_WARNING);
-        return;
-    }
-
-    if (!PromptToSaveChanges())
-    {
         return;
     }
 
@@ -920,22 +1172,45 @@ void MainFrame::OnClose(wxCloseEvent& event)
         autosaveValue = config->Read("Preferences/Autosave", "On");
     }
 
-    if (textCtrl != nullptr && textCtrl->GetModify())
+    const int previouslyActiveTab = activeTabId;
+    std::vector<int> tabIds;
+    tabIds.reserve(tabs.size());
+    for (const EditorTab& tab : tabs)
     {
-        //Veto() is only allowed when the close can be vetoed (it can't for a forced close)
+        tabIds.push_back(tab.id);
+    }
+
+    for (int tabId : tabIds)
+    {
+        EditorTab* tab = FindTab(tabId);
+        if (tab == nullptr || !tab->editor->GetModify())
+        {
+            continue;
+        }
+
+        ActivateTab(tabId);
+        bool savedOrDiscarded = true;
+        //Veto() is only allowed when the close can be vetoed (it can't for a forced close).
         if (autosaveValue == "On" && !currentFilePath.IsEmpty())
         {
-            if (!SaveToPath(currentFilePath, false) && event.CanVeto())
-            {
-                event.Veto();
-                return;
-            }
+            savedOrDiscarded = SaveToPath(currentFilePath, false);
         }
-        else if (!PromptToSaveChanges() && event.CanVeto())
+        else
         {
+            savedOrDiscarded = PromptToSaveChanges();
+        }
+
+        if (!savedOrDiscarded && event.CanVeto())
+        {
+            ActivateTab(previouslyActiveTab);
             event.Veto();
             return;
         }
+    }
+
+    if (FindTab(previouslyActiveTab) != nullptr)
+    {
+        ActivateTab(previouslyActiveTab);
     }
 
     if (config != nullptr)

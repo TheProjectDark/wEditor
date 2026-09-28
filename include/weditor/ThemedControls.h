@@ -12,6 +12,8 @@
 #include <wx/dcbuffer.h>
 #include <wx/dcgraph.h>
 #include <algorithm>
+#include <functional>
+#include <utility>
 #include <vector>
 
 //Buttons and a dropdown that draw themselves.
@@ -259,6 +261,210 @@ class ThemedButton : public wxControl
         {
             pressed_ = false;
             hover_ = false;
+            Refresh();
+        }
+};
+
+//Compact editor tab with its own active, dirty, hover, and close affordances.
+class ThemedTabButton : public wxControl
+{
+    public:
+        using CloseHandler = std::function<void()>;
+
+        ThemedTabButton(wxWindow* parent, wxWindowID id, const wxString& label)
+        {
+            wxControl::Create(parent, id, wxDefaultPosition, wxDefaultSize,
+                wxBORDER_NONE | wxFULL_REPAINT_ON_RESIZE, wxDefaultValidator);
+            SetBackgroundStyle(wxBG_STYLE_PAINT);
+            wxControl::SetLabel(label);
+
+            Bind(wxEVT_PAINT, &ThemedTabButton::OnPaint, this);
+            Bind(wxEVT_ERASE_BACKGROUND, [](wxEraseEvent&) {});
+            Bind(wxEVT_ENTER_WINDOW, &ThemedTabButton::OnEnter, this);
+            Bind(wxEVT_LEAVE_WINDOW, &ThemedTabButton::OnLeave, this);
+            Bind(wxEVT_MOTION, &ThemedTabButton::OnMotion, this);
+            Bind(wxEVT_LEFT_DOWN, &ThemedTabButton::OnLeftDown, this);
+            Bind(wxEVT_LEFT_DCLICK, &ThemedTabButton::OnLeftDown, this);
+            Bind(wxEVT_LEFT_UP, &ThemedTabButton::OnLeftUp, this);
+            Bind(wxEVT_MOUSE_CAPTURE_LOST, &ThemedTabButton::OnCaptureLost, this);
+            SetInitialSize();
+        }
+
+        void SetLabel(const wxString& label) override
+        {
+            if (GetLabel() == label) {
+                return;
+            }
+            wxControl::SetLabel(label);
+            InvalidateBestSize();
+            Refresh();
+        }
+
+        void SetActive(bool active)
+        {
+            if (active_ != active) {
+                active_ = active;
+                Refresh();
+            }
+        }
+
+        void SetModified(bool modified)
+        {
+            if (modified_ != modified) {
+                modified_ = modified;
+                Refresh();
+            }
+        }
+
+        void SetCloseHandler(CloseHandler handler)
+        {
+            closeHandler_ = std::move(handler);
+        }
+
+        bool AcceptsFocus() const override { return false; }
+
+    protected:
+        wxSize DoGetBestSize() const override
+        {
+            int width = 0;
+            int height = 0;
+            GetTextExtent(GetLabel(), &width, &height);
+            width += FromDIP(20) + FromDIP(26);
+            height = std::max(height + FromDIP(8), FromDIP(26));
+            return wxSize(width, height);
+        }
+
+    private:
+        CloseHandler closeHandler_;
+        bool active_ = false;
+        bool modified_ = false;
+        bool hover_ = false;
+        bool pressed_ = false;
+        bool pressedClose_ = false;
+
+        wxRect CloseRect() const
+        {
+            const wxSize size = GetClientSize();
+            const int closeWidth = FromDIP(26);
+            return wxRect(size.GetWidth() - closeWidth, 0, closeWidth, size.GetHeight());
+        }
+
+        void OnPaint(wxPaintEvent&)
+        {
+            wxAutoBufferedPaintDC dc(this);
+            wxGCDC gdc(dc);
+            const wxSize size = GetClientSize();
+            const wxColour behind = GetParent() != nullptr
+                ? GetParent()->GetBackgroundColour() : GetBackgroundColour();
+            wxColour fill = active_ ? GetBackgroundColour() : behind;
+            const wxColour foreground = GetForegroundColour();
+            if (pressed_ || (hover_ && !active_)) {
+                fill = ThemedControlsDetail::Mix(fill, foreground, pressed_ ? 9 : 7);
+            }
+
+            gdc.SetPen(*wxTRANSPARENT_PEN);
+            gdc.SetBrush(wxBrush(fill));
+            gdc.DrawRectangle(0, 0, size.GetWidth(), size.GetHeight());
+
+            const wxColour separator = ThemedControlsDetail::Mix(behind, foreground, 13);
+            if (active_) {
+                gdc.SetPen(wxPen(wxColour(0, 122, 204), FromDIP(2)));
+                gdc.DrawLine(0, FromDIP(1), size.GetWidth(), FromDIP(1));
+            }
+            gdc.SetPen(wxPen(separator, 1));
+            gdc.DrawLine(size.GetWidth() - 1, FromDIP(5), size.GetWidth() - 1,
+                         size.GetHeight() - FromDIP(5));
+
+            gdc.SetFont(GetFont());
+            const wxColour labelColour = active_
+                ? foreground : ThemedControlsDetail::Mix(foreground, behind, 24);
+            gdc.SetTextForeground(labelColour);
+            const wxSize textSize = gdc.GetTextExtent(GetLabel());
+            gdc.DrawText(GetLabel(), FromDIP(10), (size.GetHeight() - textSize.GetHeight()) / 2);
+
+            const wxRect closeRect = CloseRect();
+            const wxPoint center = closeRect.GetPosition() +
+                wxPoint(closeRect.GetWidth() / 2, closeRect.GetHeight() / 2);
+            if (hover_ || (active_ && !modified_)) {
+                const int radius = FromDIP(4);
+                gdc.SetPen(wxPen(labelColour, FromDIP(1)));
+                gdc.DrawLine(center.x - radius, center.y - radius,
+                             center.x + radius, center.y + radius);
+                gdc.DrawLine(center.x + radius, center.y - radius,
+                             center.x - radius, center.y + radius);
+            } else if (modified_) {
+                gdc.SetPen(*wxTRANSPARENT_PEN);
+                gdc.SetBrush(wxBrush(wxColour(0, 122, 204)));
+                gdc.DrawCircle(center, FromDIP(3));
+            }
+        }
+
+        void OnEnter(wxMouseEvent& event)
+        {
+            hover_ = true;
+            Refresh();
+            event.Skip();
+        }
+
+        void OnLeave(wxMouseEvent& event)
+        {
+            if (!HasCapture()) {
+                hover_ = false;
+                Refresh();
+            }
+            event.Skip();
+        }
+
+        void OnMotion(wxMouseEvent& event)
+        {
+            const bool inside = GetClientRect().Contains(event.GetPosition());
+            if (inside != hover_) {
+                hover_ = inside;
+                Refresh();
+            }
+            event.Skip();
+        }
+
+        void OnLeftDown(wxMouseEvent& event)
+        {
+            if (!IsEnabled()) {
+                return;
+            }
+            pressed_ = true;
+            pressedClose_ = CloseRect().Contains(event.GetPosition());
+            hover_ = true;
+            if (!HasCapture()) {
+                CaptureMouse();
+            }
+            Refresh();
+        }
+
+        void OnLeftUp(wxMouseEvent& event)
+        {
+            if (HasCapture()) {
+                ReleaseMouse();
+            }
+            const bool inside = GetClientRect().Contains(event.GetPosition());
+            const bool close = pressed_ && pressedClose_ && CloseRect().Contains(event.GetPosition());
+            const bool activate = pressed_ && !pressedClose_ && inside;
+            pressed_ = false;
+            pressedClose_ = false;
+            hover_ = inside;
+            Refresh();
+
+            if (close && closeHandler_) {
+                closeHandler_();
+            } else if (activate) {
+                wxCommandEvent clickEvent(wxEVT_BUTTON, GetId());
+                clickEvent.SetEventObject(this);
+                GetEventHandler()->ProcessEvent(clickEvent);
+            }
+        }
+
+        void OnCaptureLost(wxMouseCaptureLostEvent&)
+        {
+            pressed_ = false;
+            pressedClose_ = false;
             Refresh();
         }
 };

@@ -17,6 +17,8 @@
 #include <unordered_set>
 #include <wx/filename.h>
 #include <wx/weakref.h>
+#include <wx/scrolwin.h>
+#include <vector>
 #include "ThemeSettings.h"
 #include "ThemedControls.h"
 #include "SyntaxHighlighter/SyntaxHighlighter.h"
@@ -38,6 +40,12 @@ class MainFrame : public wxFrame
 
     private:
         wxPanel* panel;
+        wxPanel* tabsBar;
+        ThemedButton* addTabButton;
+        wxScrolledWindow* tabScroll;
+        wxBoxSizer* tabSizer;
+        wxPanel* editorHost;
+        wxBoxSizer* editorSizer;
         wxStyledTextCtrl* textCtrl;
         ThemedChoice* languageChoice;
         ThemedButton* newFile;
@@ -49,6 +57,19 @@ class MainFrame : public wxFrame
         SyntaxHighlighter* currentHighlighter;
         wxString currentLanguage;
         wxString currentFilePath;
+        struct EditorTab
+        {
+            int id;
+            wxStyledTextCtrl* editor;
+            ThemedTabButton* tabButton;
+            wxString filePath;
+            wxString untitledName;
+            wxString language;
+        };
+        std::vector<EditorTab> tabs;
+        int activeTabId = wxID_NONE;
+        int nextTabId = 1;
+        int nextUntitledNumber = 1;
         //the open preferences window (if any), so we never open two of them
         wxWeakRef<PreferencesFrame> preferencesFrame;
         //debounce for highlight
@@ -74,10 +95,20 @@ class MainFrame : public wxFrame
         void OnPreferences(wxCommandEvent& event);
         void OnText(wxCommandEvent& event);
         void OnCharAdded(wxStyledTextEvent& event);
+        void OnEditorKeyDown(wxKeyEvent& event);
         void OnLanguageChange(wxCommandEvent& event);
         void UpdateFrameTitle();
         void HighlightSyntax();
         void SetLanguage(const wxString& language);
+        int AddTab(const wxString& filePath = wxEmptyString,
+                   const wxString& content = wxEmptyString,
+                   const wxString& language = "Text");
+        void ActivateTab(int tabId);
+        void CloseTab(int tabId);
+        EditorTab* FindTab(int tabId);
+        void UpdateTabLabels();
+        void UpdateTabTheme();
+        void OnNewTab(wxCommandEvent& event);
         wxString GetLanguageForExtension(const wxString& filename) const;
         void UpdateLineNumberMargin();
 };
