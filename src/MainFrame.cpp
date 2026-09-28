@@ -371,8 +371,6 @@ int MainFrame::AddTab(const wxString& filePath, const wxString& content, const w
     editorSizer->Add(editor, 1, wxEXPAND);
 
     ThemedTabButton* tabButton = new ThemedTabButton(tabScroll, wxID_ANY, untitledName);
-    tabButton->SetMinSize(FromDIP(wxSize(64, 26)));
-    tabButton->SetMaxSize(FromDIP(wxSize(220, 26)));
     tabButton->SetToolTip(filePath.IsEmpty() ? untitledName : filePath);
     tabButton->Bind(wxEVT_BUTTON, [this, tabId](wxCommandEvent&) { ActivateTab(tabId); });
     tabButton->SetCloseHandler([this, tabId]() { CloseTab(tabId); });

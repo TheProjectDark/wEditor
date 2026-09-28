@@ -324,12 +324,16 @@ class ThemedTabButton : public wxControl
         bool AcceptsFocus() const override { return false; }
 
     protected:
+        //The width follows the label. The min/max width live here and not in SetMinSize/SetMaxSize
+        //on purpose: an explicit min size with both dimensions set makes the sizer ignore the best
+        //size, so every tab would stay at that width no matter how long the file name is.
         wxSize DoGetBestSize() const override
         {
             int width = 0;
             int height = 0;
             GetTextExtent(GetLabel(), &width, &height);
-            width += FromDIP(20) + FromDIP(26);
+            width += FromDIP(10) + FromDIP(10) + FromDIP(26); //left padding, gap, close button
+            width = std::min(std::max(width, FromDIP(64)), FromDIP(220));
             height = std::max(height + FromDIP(8), FromDIP(26));
             return wxSize(width, height);
         }
@@ -379,8 +383,10 @@ class ThemedTabButton : public wxControl
             const wxColour labelColour = active_
                 ? foreground : ThemedControlsDetail::Mix(foreground, behind, 24);
             gdc.SetTextForeground(labelColour);
-            const wxSize textSize = gdc.GetTextExtent(GetLabel());
-            gdc.DrawText(GetLabel(), FromDIP(10), (size.GetHeight() - textSize.GetHeight()) / 2);
+            const int maxTextWidth = size.GetWidth() - FromDIP(10) - FromDIP(10) - FromDIP(26);
+            const wxString label = wxControl::Ellipsize(GetLabel(), gdc, wxELLIPSIZE_END, maxTextWidth);
+            const wxSize textSize = gdc.GetTextExtent(label);
+            gdc.DrawText(label, FromDIP(10), (size.GetHeight() - textSize.GetHeight()) / 2);
 
             const wxRect closeRect = CloseRect();
             const wxPoint center = closeRect.GetPosition() +
