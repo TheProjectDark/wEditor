@@ -12,7 +12,7 @@
 #include <wx/stc/stc.h>
 #include "SyntaxHighlighter.h"
 
-class CMakeHighlight : public SyntaxHighlighter {
+class HTMLHighlight : public SyntaxHighlighter {
     void ApplyHighlight(wxStyledTextCtrl* textCtrl) override;
-    wxString GetLanguageName() const override { return "CMake"; }
+    wxString GetLanguageName() const override { return "HTML"; }
 };

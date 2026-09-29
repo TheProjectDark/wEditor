@@ -15,6 +15,7 @@
 #include <weditor/SyntaxHighlighter/SyntaxHighlightJava.h>
 #include <weditor/SyntaxHighlighter/SyntaxHighlightPython.h>
 #include <weditor/SyntaxHighlighter/SyntaxHighlightJavaScript.h>
+#include <weditor/SyntaxHighlighter/HTMLHighlight.h>
 #include <weditor/SyntaxHighlighter/SyntaxHighlightBash.h>
 #include <weditor/SyntaxHighlighter/SyntaxHighlightBatch.h>
 #include <weditor/SyntaxHighlighter/SyntaxHighlightAssembly.h>
@@ -39,6 +40,9 @@ SyntaxHighlighter* HighlighterFactory::CreateHighlighter(const wxString& languag
     }
     else if (language == "Python") {
         return new SyntaxHighlightPython();    
+    }
+    else if (language == "HTML") {
+        return new HTMLHighlight();
     }
     else if (language == "JavaScript") {
         return new SyntaxHighlightJavaScript();
@@ -73,6 +77,7 @@ std::vector<wxString> HighlighterFactory::GetAvailableLanguages() {
         "Java",
         "Python",
         "JavaScript",
+        "HTML",
         "Bash",
         "Batch",
         "Assembly",
