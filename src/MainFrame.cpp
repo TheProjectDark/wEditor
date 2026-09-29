@@ -548,6 +548,7 @@ const::wxString MainFrame::wildcard =
     "Python files (*.py)|*.py|"
     "JavaScript files (*.js)|*.js|"
     "HTML files (*.html;*.htm)|*.html;*.htm|"
+    "CSS files (*.css)|*.css|"
     "Bash files (*.sh)|*.sh|"
     "Batch files (*.bat;*.cmd)|*.bat;*.cmd|"
     "Assembly files (*.asm;*.s)|*.asm;*.s|"
@@ -1009,6 +1010,8 @@ wxString MainFrame::GetLanguageForExtension(const wxString& filename) const {
         return "JavaScript";
     } else if (ext == "html" || ext == "htm") {
         return "HTML";
+    } else if (ext == "css") {
+        return "CSS";
     } else if (ext == "sh") {
         return "Bash";
     } else if (ext == "bat" || ext == "cmd") {

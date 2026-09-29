@@ -54,6 +54,7 @@ set(SOURCES
     src/SyntaxHighlighter/SyntaxHighlightPython.cpp
     src/SyntaxHighlighter/SyntaxHighlightJavaScript.cpp
     src/SyntaxHighlighter/HTMLHighlight.cpp
+    src/SyntaxHighlighter/CSSHighlight.cpp
     src/SyntaxHighlighter/SyntaxHighlightBash.cpp
     src/SyntaxHighlighter/SyntaxHighlightBatch.cpp
     src/SyntaxHighlighter/SyntaxHighlightAssembly.cpp
