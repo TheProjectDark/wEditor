@@ -895,7 +895,7 @@ void MainFrame::OnText(wxCommandEvent& event) {
         return;
     }
     UpdateLineNumberMargin();
-    highlightTimer.StartOnce(150);
+    highlightTimer.StartOnce(10);
     textCtrl->SetScrollWidth(1);
     event.Skip();
 }
