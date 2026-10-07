@@ -11,6 +11,9 @@
 #include <wx/wx.h>
 #include <wx/dcbuffer.h>
 #include <wx/dcgraph.h>
+#include <wx/stopwatch.h>
+#include <wx/timer.h>
+#include <wx/weakref.h>
 #include <algorithm>
 #include <functional>
 #include <utility>
@@ -28,8 +31,17 @@
 //The controls use their own background/foreground colour (SetBackgroundColour/SetForegroundColour)
 //and the background of their parent for the area behind the rounded corners. When the theme
 //changes just set the colours again (that repaints them), same as with the native controls.
+//
+//The look is flat and minimal: a hairline outline, soft 6 DIP corners, no gradients or 3D edges.
+//Hover and press need no extra theme colours, they tint the background towards the text colour,
+//so the same code works on light and dark themes. The hover tint fades in and out (kFadeMs).
 namespace ThemedControlsDetail
 {
+    //how long the hover highlight takes to fade in or out, in milliseconds (0 turns the fade off)
+    const int kFadeMs = 120;
+    //timer period of the fade, about 60 frames per second
+    const int kFrameMs = 16;
+
     //true when the colour is closer to black than to white
     inline bool IsDark(const wxColour& colour)
     {
@@ -44,6 +56,12 @@ namespace ThemedControlsDetail
             static_cast<unsigned char>((a.Blue() * (100 - percentOfB) + b.Blue() * percentOfB) / 100));
     }
 
+    //accent colour of the primary button (the same blue as the active tab line)
+    inline wxColour Accent()
+    {
+        return wxColour(0, 122, 204);
+    }
+
     struct Look
     {
         wxColour behind;
@@ -52,7 +70,8 @@ namespace ThemedControlsDetail
         wxColour text;
     };
 
-    inline Look GetLook(const wxWindow* window, bool enabled, bool hover, bool pressed)
+    //hoverPercent is how far the hover highlight is faded in, 0..100
+    inline Look GetLook(const wxWindow* window, bool enabled, int hoverPercent, bool pressed, bool primary = false)
     {
         const wxColour background = window->GetBackgroundColour();
         const wxColour foreground = window->GetForegroundColour();
@@ -60,16 +79,31 @@ namespace ThemedControlsDetail
         Look look;
         look.behind = window->GetParent() != nullptr ? window->GetParent()->GetBackgroundColour() : background;
 
-        const bool darkTheme = IsDark(look.behind);
-        if (pressed) {
-            look.fill = background.ChangeLightness(darkTheme ? 85 : 90);
-        } else if (hover) {
-            look.fill = background.ChangeLightness(darkTheme ? 115 : 96);
-        } else {
-            look.fill = background;
+        if (primary) {
+            const wxColour white(255, 255, 255);
+            if (enabled) {
+                look.fill = pressed ? Accent().ChangeLightness(85)
+                                    : Accent().ChangeLightness(100 + hoverPercent * 12 / 100);
+                look.text = white;
+            } else {
+                look.fill = Mix(background, Accent(), 40);
+                look.text = Mix(white, look.fill, 40);
+            }
+            look.border = look.fill;
+            return look;
         }
-        look.border = background.ChangeLightness(darkTheme ? 78 : 85);
-        look.text = enabled ? foreground : Mix(foreground, background, 55);
+
+        if (!enabled) {
+            look.fill = background;
+            look.border = Mix(background, foreground, 8);
+            look.text = Mix(foreground, background, 55);
+            return look;
+        }
+
+        //hover and press only tint the background towards the text colour
+        look.fill = Mix(background, foreground, pressed ? 14 : hoverPercent * 8 / 100);
+        look.border = Mix(background, foreground, pressed ? 28 : 14 + hoverPercent * 10 / 100);
+        look.text = foreground;
         return look;
     }
 
@@ -83,8 +117,58 @@ namespace ThemedControlsDetail
 
         gdc.SetPen(wxPen(look.border, 1));
         gdc.SetBrush(wxBrush(look.fill));
-        gdc.DrawRoundedRectangle(0, 0, size.GetWidth(), size.GetHeight(), window->FromDIP(5));
+        gdc.DrawRoundedRectangle(0, 0, size.GetWidth(), size.GetHeight(), window->FromDIP(6));
     }
+
+    //Fades the hover highlight in and out, like `transition: 120ms` in CSS. A control keeps one of
+    //these, calls SetTarget() when the pointer enters or leaves and reads Percent() when it paints.
+    class HoverFade : public wxEvtHandler
+    {
+        public:
+            explicit HoverFade(wxWindow* window)
+                : window_(window), timer_(this)
+            {
+                Bind(wxEVT_TIMER, &HoverFade::OnTimer, this);
+            }
+
+            void SetTarget(bool on)
+            {
+                target_ = on ? 1.0 : 0.0;
+                if (kFadeMs <= 0) {
+                    level_ = target_;
+                } else if (level_ != target_ && !timer_.IsRunning()) {
+                    lastTick_ = watch_.Time();
+                    timer_.Start(kFrameMs);
+                }
+            }
+
+            //0..100
+            int Percent() const
+            {
+                return static_cast<int>(level_ * 100.0 + 0.5);
+            }
+
+        private:
+            wxWindow* window_;
+            wxTimer timer_;
+            wxStopWatch watch_;
+            double level_ = 0.0;
+            double target_ = 0.0;
+            long lastTick_ = 0;
+
+            void OnTimer(wxTimerEvent&)
+            {
+                const long now = watch_.Time();
+                const double step = static_cast<double>(now - lastTick_) / kFadeMs;
+                lastTick_ = now;
+                level_ = level_ < target_ ? std::min(target_, level_ + step)
+                                          : std::max(target_, level_ - step);
+                if (level_ == target_) {
+                    timer_.Stop();
+                }
+                window_->Refresh();
+            }
+    };
 }
 
 //push button with a text and/or an icon
@@ -129,6 +213,15 @@ class ThemedButton : public wxControl
             Refresh();
         }
 
+        //filled with the accent colour and white text, for the main action of a panel
+        void SetPrimary(bool primary)
+        {
+            if (primary_ != primary) {
+                primary_ = primary;
+                Refresh();
+            }
+        }
+
         //clicking a button must not take the keyboard focus away from the editor
         bool AcceptsFocus() const override { return false; }
 
@@ -156,6 +249,8 @@ class ThemedButton : public wxControl
         mutable wxColour tintedFor_;
         bool hover_ = false;
         bool pressed_ = false;
+        bool primary_ = false;
+        ThemedControlsDetail::HoverFade fade_{this};
 
         wxBitmap GetIcon(const wxColour& colour) const
         {
@@ -177,12 +272,22 @@ class ThemedButton : public wxControl
             return tinted_;
         }
 
+        //repaints and starts the fade, but only when the state really changed
+        void SetHover(bool hover)
+        {
+            if (hover_ != hover) {
+                hover_ = hover;
+                fade_.SetTarget(hover);
+                Refresh();
+            }
+        }
+
         void OnPaint(wxPaintEvent&)
         {
             wxAutoBufferedPaintDC dc(this);
             wxGCDC gdc(dc);
-            const ThemedControlsDetail::Look look =
-                ThemedControlsDetail::GetLook(this, IsEnabled(), hover_, pressed_ && hover_);
+            const ThemedControlsDetail::Look look = ThemedControlsDetail::GetLook(
+                this, IsEnabled(), fade_.Percent(), pressed_ && hover_, primary_);
             ThemedControlsDetail::DrawFrame(gdc, this, look);
 
             const wxSize size = GetClientSize();
@@ -202,8 +307,7 @@ class ThemedButton : public wxControl
 
         void OnEnter(wxMouseEvent& event)
         {
-            hover_ = true;
-            Refresh();
+            SetHover(true);
             event.Skip();
         }
 
@@ -211,19 +315,14 @@ class ThemedButton : public wxControl
         {
             //while the mouse button is held the mouse is captured, motion events keep hover_ up to date
             if (!HasCapture()) {
-                hover_ = false;
-                Refresh();
+                SetHover(false);
             }
             event.Skip();
         }
 
         void OnMotion(wxMouseEvent& event)
         {
-            const bool inside = GetClientRect().Contains(event.GetPosition());
-            if (inside != hover_) {
-                hover_ = inside;
-                Refresh();
-            }
+            SetHover(GetClientRect().Contains(event.GetPosition()));
             event.Skip();
         }
 
@@ -233,7 +332,7 @@ class ThemedButton : public wxControl
                 return;
             }
             pressed_ = true;
-            hover_ = true;
+            SetHover(true);
             if (!HasCapture()) {
                 CaptureMouse();
             }
@@ -245,9 +344,10 @@ class ThemedButton : public wxControl
             if (HasCapture()) {
                 ReleaseMouse();
             }
-            const bool click = pressed_ && GetClientRect().Contains(event.GetPosition());
+            const bool inside = GetClientRect().Contains(event.GetPosition());
+            const bool click = pressed_ && inside;
             pressed_ = false;
-            hover_ = GetClientRect().Contains(event.GetPosition());
+            SetHover(inside);
             Refresh();
 
             if (click) {
@@ -260,7 +360,7 @@ class ThemedButton : public wxControl
         void OnCaptureLost(wxMouseCaptureLostEvent&)
         {
             pressed_ = false;
-            hover_ = false;
+            SetHover(false);
             Refresh();
         }
 };
@@ -552,12 +652,25 @@ class ThemedChoice : public wxControl
         std::vector<wxString> items_;
         int selection_ = wxNOT_FOUND;
         bool hover_ = false;
+        bool open_ = false; //the list is shown, the control stays highlighted until it closes
+        ThemedControlsDetail::HoverFade fade_{this};
+
+        //repaints and starts the fade, but only when the state really changed
+        void SetHover(bool hover)
+        {
+            if (hover_ != hover) {
+                hover_ = hover;
+                fade_.SetTarget(hover);
+                Refresh();
+            }
+        }
 
         void OnPaint(wxPaintEvent&)
         {
             wxAutoBufferedPaintDC dc(this);
             wxGCDC gdc(dc);
-            const ThemedControlsDetail::Look look = ThemedControlsDetail::GetLook(this, IsEnabled(), hover_, false);
+            const int hover = fade_.Percent();
+            const ThemedControlsDetail::Look look = ThemedControlsDetail::GetLook(this, IsEnabled(), hover, open_);
             ThemedControlsDetail::DrawFrame(gdc, this, look);
 
             const wxSize size = GetClientSize();
@@ -567,30 +680,33 @@ class ThemedChoice : public wxControl
             const wxSize textSize = gdc.GetTextExtent(text);
             gdc.DrawText(text, FromDIP(14), (size.GetHeight() - textSize.GetHeight()) / 2);
 
-            //arrow
+            //chevron: thin, with round ends, muted until the pointer is over the control or the list is open
             const int arrowX = size.GetWidth() - FromDIP(16);
             const int arrowY = size.GetHeight() / 2;
             const int half = FromDIP(4);
             wxPoint arrow[3] = {
                 wxPoint(arrowX - half, arrowY - half / 2),
-                wxPoint(arrowX, arrowY + half / 2 + 1),
+                wxPoint(arrowX, arrowY + half / 2),
                 wxPoint(arrowX + half, arrowY - half / 2)
             };
-            gdc.SetPen(wxPen(look.text, std::max(1, FromDIP(1))));
+            const int emphasis = open_ ? 100 : hover;
+            wxPen pen(ThemedControlsDetail::Mix(look.fill, look.text, 60 + emphasis * 40 / 100),
+                std::max(1, FromDIP(1)));
+            pen.SetCap(wxCAP_ROUND);
+            pen.SetJoin(wxJOIN_ROUND);
+            gdc.SetPen(pen);
             gdc.DrawLines(3, arrow);
         }
 
         void OnEnter(wxMouseEvent& event)
         {
-            hover_ = true;
-            Refresh();
+            SetHover(true);
             event.Skip();
         }
 
         void OnLeave(wxMouseEvent& event)
         {
-            hover_ = false;
-            Refresh();
+            SetHover(false);
             event.Skip();
         }
 
@@ -609,9 +725,21 @@ class ThemedChoice : public wxControl
             }
             menu.Bind(wxEVT_MENU, &ThemedChoice::OnMenuItem, this);
 
-            hover_ = false;
+            open_ = true;
+            SetHover(false);
             Refresh();
+            Update();
+
+            //the handler of wxEVT_CHOICE may delete this control while the menu is still running
+            wxWeakRef<ThemedChoice> self(this);
             PopupMenu(&menu, 0, GetSize().GetHeight());
+            if (!self) {
+                return;
+            }
+
+            open_ = false;
+            SetHover(GetScreenRect().Contains(wxGetMousePosition()));
+            Refresh();
         }
 
         void OnMenuItem(wxCommandEvent& event)
