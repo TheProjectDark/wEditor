@@ -19,12 +19,7 @@
 
 namespace
 {
-//macOS draws the title bar, scrollbars, menus and native controls according to the system appearance
-//(light/dark). The app has its own theme setting, so make macOS use the same one. Without this a light
-//app theme on a dark macOS mixes light editor colours with dark native parts and looks washed out.
-//Same as [NSApp setAppearance:[NSAppearance appearanceNamed:name]], written with the Objective-C runtime
-//so this file can stay a plain .cpp. (With wxWidgets 3.3 or newer wxTheApp->SetAppearance() does the same.)
-//Does nothing on other platforms.
+///apply the native macOS appearance to the app, so that the title bar and menu bar follow the theme
 void ApplyNativeAppearance(const wxString& theme)
 {
 #ifdef __WXOSX_COCOA__
@@ -71,6 +66,39 @@ wxBitmap LoadToolbarIcon(const unsigned char* data, std::size_t length, const wx
     }
 
     return wxArtProvider::GetBitmap(fallbackArtId, wxART_BUTTON);
+}
+
+//Ts puts scrollbar under tab buttons
+void FitTabsBar(wxPanel* tabsBar, wxScrolledWindow* tabScroll, wxSizer* tabSizer)
+{
+    const wxSize tabsSize = tabSizer->CalcMin();
+    const int tabsHeight = std::max(tabsSize.GetHeight(), tabsBar->FromDIP(26));
+    //only the horizontal scrollbar exists, so it does not change the width that is available for the tabs
+    const bool overflow = tabsSize.GetWidth() > tabScroll->GetClientSize().GetWidth();
+
+    int scrollbarHeight = 0;
+    if (overflow)
+    {
+        //the real height when the scrollbar is already visible, the system value until it is
+        scrollbarHeight = tabScroll->GetSize().GetHeight() - tabScroll->GetClientSize().GetHeight();
+        if (scrollbarHeight <= 0)
+        {
+            scrollbarHeight = wxSystemSettings::GetMetric(wxSYS_HSCROLL_Y, tabScroll);
+        }
+        if (scrollbarHeight <= 0)
+        {
+            scrollbarHeight = tabsBar->FromDIP(15);
+        }
+    }
+
+    const int height = tabsHeight + scrollbarHeight;
+    if (tabsBar->GetMinSize().GetHeight() == height)
+    {
+        return;
+    }
+    //the width stays at wxDefaultCoord, so it is still taken from the content as before
+    tabsBar->SetMinSize(wxSize(wxDefaultCoord, height));
+    tabsBar->GetParent()->Layout();
 }
 }
 
@@ -123,6 +151,13 @@ MainFrame::MainFrame(const wxString& title)
     tabsBarSizer->Add(tabScroll, 1, wxEXPAND | wxRIGHT, FromDIP(4));
     tabsBarSizer->Add(addTabButton, 0, wxALIGN_CENTER_VERTICAL);
     tabsBar->SetSizer(tabsBarSizer);
+    //the window gets wider or narrower, so the tabs may start or stop to overflow. CallAfter lets the
+    //layout finish first, then the real size of tabScroll is known
+    tabsBar->Bind(wxEVT_SIZE, [this](wxSizeEvent& event)
+    {
+        event.Skip();
+        CallAfter([this]() { FitTabsBar(tabsBar, tabScroll, tabSizer); });
+    });
     // create menu
     wxMenu *menuFile = new wxMenu;
     menuFile->Append(wxID_NEW);
@@ -395,6 +430,7 @@ int MainFrame::AddTab(const wxString& filePath, const wxString& content, const w
 
     tabScroll->FitInside();
     tabScroll->Layout();
+    FitTabsBar(tabsBar, tabScroll, tabSizer);
     tabScroll->Scroll(tabScroll->GetScrollRange(wxHORIZONTAL), 0);
     UpdateTabLabels();
     return tabId;
@@ -472,6 +508,7 @@ void MainFrame::CloseTab(int tabId)
 
     tabScroll->FitInside();
     tabScroll->Layout();
+    FitTabsBar(tabsBar, tabScroll, tabSizer);
     UpdateTabLabels();
 }
 
@@ -503,6 +540,7 @@ void MainFrame::UpdateTabLabels()
     {
         tabScroll->FitInside();
         tabScroll->Layout();
+        FitTabsBar(tabsBar, tabScroll, tabSizer);
         tabScroll->Scroll(tabScroll->GetScrollRange(wxHORIZONTAL), 0);
     }
 }
