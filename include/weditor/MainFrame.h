@@ -73,6 +73,7 @@ class MainFrame : public wxFrame
         wxWeakRef<PreferencesFrame> preferencesFrame;
         //debounce for highlight
         wxTimer highlightTimer;
+        wxStopWatch tabDragScrollClock;
 
         //wildcard
         static const wxString wildcard;
@@ -104,6 +105,7 @@ class MainFrame : public wxFrame
                    const wxString& language = "Text");
         void ActivateTab(int tabId);
         void CloseTab(int tabId);
+        void MoveTab(int tabId, const wxPoint& screenPosition);
         EditorTab* FindTab(int tabId);
         void UpdateTabLabels();
         void UpdateTabTheme();

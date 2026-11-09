@@ -417,6 +417,9 @@ int MainFrame::AddTab(const wxString& filePath, const wxString& content, const w
     tabButton->SetToolTip(filePath.IsEmpty() ? untitledName : filePath);
     tabButton->Bind(wxEVT_BUTTON, [this, tabId](wxCommandEvent&) { ActivateTab(tabId); });
     tabButton->SetCloseHandler([this, tabId]() { CloseTab(tabId); });
+    tabButton->SetDragHandler([this, tabId](const wxPoint& screenPosition) {
+        MoveTab(tabId, screenPosition);
+    });
     tabSizer->Add(tabButton, 0, wxEXPAND | wxRIGHT, FromDIP(1));
 
     EditorTab tab;
@@ -510,6 +513,68 @@ void MainFrame::CloseTab(int tabId)
     tabScroll->Layout();
     FitTabsBar(tabsBar, tabScroll, tabSizer);
     UpdateTabLabels();
+}
+
+void MainFrame::MoveTab(int tabId, const wxPoint& screenPosition)
+{
+    const auto current = std::find_if(tabs.begin(), tabs.end(), [tabId](const EditorTab& tab) {
+        return tab.id == tabId;
+    });
+    if (current == tabs.end() || tabs.size() < 2)
+    {
+        return;
+    }
+
+    const wxPoint clientPosition = tabScroll->ScreenToClient(screenPosition);
+    const int edgeWidth = tabScroll->FromDIP(24);
+    const int viewX = tabScroll->GetViewStart().x;
+    const int viewY = tabScroll->GetViewStart().y;
+    const int scrollRange = tabScroll->GetScrollRange(wxHORIZONTAL);
+    const bool canAutoScroll = tabDragScrollClock.Time() >= 50;
+    if (canAutoScroll && clientPosition.x < edgeWidth && viewX > 0)
+    {
+        tabScroll->Scroll(viewX - 1, viewY);
+        tabDragScrollClock.Start();
+    }
+    else if (canAutoScroll &&
+             clientPosition.x >= tabScroll->GetClientSize().x - edgeWidth && viewX < scrollRange)
+    {
+        tabScroll->Scroll(std::min(viewX + 1, scrollRange), viewY);
+        tabDragScrollClock.Start();
+    }
+
+    const wxPoint pointerPosition = tabScroll->CalcUnscrolledPosition(clientPosition);
+
+    int targetIndex = 0;
+    for (const EditorTab& tab : tabs)
+    {
+        if (tab.id == tabId)
+        {
+            continue;
+        }
+        const int midpoint = tab.tabButton->GetPosition().x + tab.tabButton->GetSize().x / 2;
+        if (pointerPosition.x > midpoint)
+        {
+            ++targetIndex;
+        }
+    }
+
+    const int currentIndex = static_cast<int>(std::distance(tabs.begin(), current));
+    if (targetIndex == currentIndex)
+    {
+        return;
+    }
+
+    EditorTab movingTab = *current;
+    tabs.erase(current);
+    tabs.insert(tabs.begin() + targetIndex, movingTab);
+
+    tabSizer->Detach(movingTab.tabButton);
+    tabSizer->Insert(static_cast<std::size_t>(targetIndex), movingTab.tabButton,
+                     0, wxEXPAND | wxRIGHT, FromDIP(1));
+    tabScroll->FitInside();
+    tabScroll->Layout();
+    FitTabsBar(tabsBar, tabScroll, tabSizer);
 }
 
 void MainFrame::UpdateTabLabels()

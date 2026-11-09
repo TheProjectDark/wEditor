@@ -15,6 +15,7 @@
 #include <wx/timer.h>
 #include <wx/weakref.h>
 #include <algorithm>
+#include <cstdlib>
 #include <functional>
 #include <utility>
 #include <vector>
@@ -370,6 +371,7 @@ class ThemedTabButton : public wxControl
 {
     public:
         using CloseHandler = std::function<void()>;
+        using DragHandler = std::function<void(const wxPoint&)>;
 
         ThemedTabButton(wxWindow* parent, wxWindowID id, const wxString& label)
         {
@@ -421,6 +423,11 @@ class ThemedTabButton : public wxControl
             closeHandler_ = std::move(handler);
         }
 
+        void SetDragHandler(DragHandler handler)
+        {
+            dragHandler_ = std::move(handler);
+        }
+
         bool AcceptsFocus() const override { return false; }
 
     protected:
@@ -440,11 +447,14 @@ class ThemedTabButton : public wxControl
 
     private:
         CloseHandler closeHandler_;
+        DragHandler dragHandler_;
         bool active_ = false;
         bool modified_ = false;
         bool hover_ = false;
         bool pressed_ = false;
         bool pressedClose_ = false;
+        bool dragging_ = false;
+        wxPoint dragStartPosition_;
 
         wxRect CloseRect() const
         {
@@ -528,6 +538,13 @@ class ThemedTabButton : public wxControl
                 hover_ = inside;
                 Refresh();
             }
+            if (pressed_ && !pressedClose_ && !dragging_ &&
+                std::abs(event.GetPosition().x - dragStartPosition_.x) >= FromDIP(4)) {
+                dragging_ = true;
+            }
+            if (dragging_ && dragHandler_) {
+                dragHandler_(ClientToScreen(event.GetPosition()));
+            }
             event.Skip();
         }
 
@@ -538,6 +555,8 @@ class ThemedTabButton : public wxControl
             }
             pressed_ = true;
             pressedClose_ = CloseRect().Contains(event.GetPosition());
+            dragging_ = false;
+            dragStartPosition_ = event.GetPosition();
             hover_ = true;
             if (!HasCapture()) {
                 CaptureMouse();
@@ -547,15 +566,22 @@ class ThemedTabButton : public wxControl
 
         void OnLeftUp(wxMouseEvent& event)
         {
+            if (dragging_ && dragHandler_) {
+                dragHandler_(ClientToScreen(event.GetPosition()));
+            }
+            const bool inside = GetClientRect().Contains(event.GetPosition());
+            const bool wasPressed = pressed_;
+            const bool wasPressedClose = pressedClose_;
+            const bool wasDragging = dragging_;
+            const bool close = wasPressed && wasPressedClose && CloseRect().Contains(event.GetPosition());
+            const bool activate = wasPressed && !wasPressedClose && !wasDragging && inside;
+            pressed_ = false;
+            pressedClose_ = false;
+            dragging_ = false;
+            hover_ = inside;
             if (HasCapture()) {
                 ReleaseMouse();
             }
-            const bool inside = GetClientRect().Contains(event.GetPosition());
-            const bool close = pressed_ && pressedClose_ && CloseRect().Contains(event.GetPosition());
-            const bool activate = pressed_ && !pressedClose_ && inside;
-            pressed_ = false;
-            pressedClose_ = false;
-            hover_ = inside;
             Refresh();
 
             if (close && closeHandler_) {
@@ -571,6 +597,7 @@ class ThemedTabButton : public wxControl
         {
             pressed_ = false;
             pressedClose_ = false;
+            dragging_ = false;
             Refresh();
         }
 };
