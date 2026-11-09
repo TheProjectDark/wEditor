@@ -188,6 +188,8 @@ MainFrame::MainFrame(const wxString& title)
         Bind(wxEVT_TIMER, [this](wxTimerEvent&) {
             HighlightSyntax();
         }, highlightTimer.GetId());
+    tabDragAnimationTimer.SetOwner(this);
+    Bind(wxEVT_TIMER, &MainFrame::OnTabDragAnimation, this, tabDragAnimationTimer.GetId());
     
     newFile = new ThemedButton(panel, wxID_ANY, "New file");
     saveAs = new ThemedButton(panel, wxID_ANY, "Save as");
@@ -417,8 +419,9 @@ int MainFrame::AddTab(const wxString& filePath, const wxString& content, const w
     tabButton->SetToolTip(filePath.IsEmpty() ? untitledName : filePath);
     tabButton->Bind(wxEVT_BUTTON, [this, tabId](wxCommandEvent&) { ActivateTab(tabId); });
     tabButton->SetCloseHandler([this, tabId]() { CloseTab(tabId); });
-    tabButton->SetDragHandler([this, tabId](const wxPoint& screenPosition) {
-        MoveTab(tabId, screenPosition);
+    tabButton->SetDragHandler([this, tabId](const wxPoint& screenPosition,
+                                            const wxPoint& grabOffset, bool finished) {
+        MoveTab(tabId, screenPosition, grabOffset, finished);
     });
     tabSizer->Add(tabButton, 0, wxEXPAND | wxRIGHT, FromDIP(1));
 
@@ -515,7 +518,8 @@ void MainFrame::CloseTab(int tabId)
     UpdateTabLabels();
 }
 
-void MainFrame::MoveTab(int tabId, const wxPoint& screenPosition)
+void MainFrame::MoveTab(int tabId, const wxPoint& screenPosition,
+                        const wxPoint& grabOffset, bool finished)
 {
     const auto current = std::find_if(tabs.begin(), tabs.end(), [tabId](const EditorTab& tab) {
         return tab.id == tabId;
@@ -523,6 +527,19 @@ void MainFrame::MoveTab(int tabId, const wxPoint& screenPosition)
     if (current == tabs.end() || tabs.size() < 2)
     {
         return;
+    }
+
+    if (!finished && animatedTabId != tabId)
+    {
+        if (animatedTabId != wxID_NONE)
+        {
+            tabDragAnimationTimer.Stop();
+            tabScroll->Layout();
+        }
+        animatedTabId = tabId;
+        animatingTabDrop = false;
+        current->tabButton->Raise();
+        tabDragAnimationTimer.Start(16);
     }
 
     const wxPoint clientPosition = tabScroll->ScreenToClient(screenPosition);
@@ -543,8 +560,6 @@ void MainFrame::MoveTab(int tabId, const wxPoint& screenPosition)
         tabDragScrollClock.Start();
     }
 
-    const wxPoint pointerPosition = tabScroll->CalcUnscrolledPosition(clientPosition);
-
     int targetIndex = 0;
     for (const EditorTab& tab : tabs)
     {
@@ -552,29 +567,106 @@ void MainFrame::MoveTab(int tabId, const wxPoint& screenPosition)
         {
             continue;
         }
-        const int midpoint = tab.tabButton->GetPosition().x + tab.tabButton->GetSize().x / 2;
-        if (pointerPosition.x > midpoint)
+        const wxPoint tabCenter = tab.tabButton->ClientToScreen(wxPoint(
+            tab.tabButton->GetSize().x / 2, tab.tabButton->GetSize().y / 2));
+        if (screenPosition.x > tabCenter.x)
         {
             ++targetIndex;
         }
     }
 
     const int currentIndex = static_cast<int>(std::distance(tabs.begin(), current));
-    if (targetIndex == currentIndex)
+    EditorTab movingTab = *current;
+    const wxPoint visualPosition = movingTab.tabButton->GetPosition();
+    if (targetIndex != currentIndex)
     {
+        tabs.erase(current);
+        tabs.insert(tabs.begin() + targetIndex, movingTab);
+
+        tabSizer->Detach(movingTab.tabButton);
+        tabSizer->Insert(static_cast<std::size_t>(targetIndex), movingTab.tabButton,
+                         0, wxEXPAND | wxRIGHT, FromDIP(1));
+        tabScroll->FitInside();
+        tabScroll->Layout();
+        FitTabsBar(tabsBar, tabScroll, tabSizer);
+        //Keep the tab under the cursor while the other tabs make room for its new slot.
+        movingTab.tabButton->Move(visualPosition);
+    }
+
+    if (!finished)
+    {
+        const int targetX = tabScroll->ScreenToClient(
+            wxPoint(screenPosition.x - grabOffset.x, screenPosition.y)).x;
+        tabDragTargetPosition = wxPoint(targetX,
+                                        movingTab.tabButton->GetPosition().y);
+        if (!tabDragAnimationTimer.IsRunning())
+        {
+            tabDragAnimationTimer.Start(16);
+        }
         return;
     }
 
-    EditorTab movingTab = *current;
-    tabs.erase(current);
-    tabs.insert(tabs.begin() + targetIndex, movingTab);
-
-    tabSizer->Detach(movingTab.tabButton);
-    tabSizer->Insert(static_cast<std::size_t>(targetIndex), movingTab.tabButton,
-                     0, wxEXPAND | wxRIGHT, FromDIP(1));
+    //Run a final layout to get the button's real destination, then animate it into place.
     tabScroll->FitInside();
     tabScroll->Layout();
     FitTabsBar(tabsBar, tabScroll, tabSizer);
+    const wxPoint dropPosition = movingTab.tabButton->GetPosition();
+    movingTab.tabButton->Move(visualPosition);
+    animatedTabId = tabId;
+    animatingTabDrop = true;
+    tabDragTargetPosition = dropPosition;
+    if (visualPosition == dropPosition)
+    {
+        tabDragAnimationTimer.Stop();
+        animatedTabId = wxID_NONE;
+        animatingTabDrop = false;
+    }
+    else
+    {
+        tabDragAnimationTimer.Start(16);
+    }
+}
+
+void MainFrame::OnTabDragAnimation(wxTimerEvent&)
+{
+    EditorTab* tab = FindTab(animatedTabId);
+    if (tab == nullptr)
+    {
+        tabDragAnimationTimer.Stop();
+        animatedTabId = wxID_NONE;
+        animatingTabDrop = false;
+        return;
+    }
+
+    const wxPoint currentPosition = tab->tabButton->GetPosition();
+    const int deltaX = tabDragTargetPosition.x - currentPosition.x;
+    const int deltaY = tabDragTargetPosition.y - currentPosition.y;
+    if (std::abs(deltaX) <= 1 && std::abs(deltaY) <= 1)
+    {
+        tab->tabButton->Move(tabDragTargetPosition);
+        if (animatingTabDrop)
+        {
+            tabDragAnimationTimer.Stop();
+            animatedTabId = wxID_NONE;
+            animatingTabDrop = false;
+        }
+        else
+        {
+            tabDragAnimationTimer.Stop();
+        }
+        return;
+    }
+
+    const auto easeStep = [](int delta) {
+        if (delta == 0)
+        {
+            return 0;
+        }
+        const int step = delta / 3;
+        return step == 0 ? (delta > 0 ? 1 : -1) : step;
+    };
+    tab->tabButton->Move(wxPoint(currentPosition.x + easeStep(deltaX),
+                                 currentPosition.y + easeStep(deltaY)));
 }
 
 void MainFrame::UpdateTabLabels()

@@ -371,7 +371,7 @@ class ThemedTabButton : public wxControl
 {
     public:
         using CloseHandler = std::function<void()>;
-        using DragHandler = std::function<void(const wxPoint&)>;
+        using DragHandler = std::function<void(const wxPoint&, const wxPoint&, bool)>;
 
         ThemedTabButton(wxWindow* parent, wxWindowID id, const wxString& label)
         {
@@ -543,7 +543,7 @@ class ThemedTabButton : public wxControl
                 dragging_ = true;
             }
             if (dragging_ && dragHandler_) {
-                dragHandler_(ClientToScreen(event.GetPosition()));
+                dragHandler_(ClientToScreen(event.GetPosition()), dragStartPosition_, false);
             }
             event.Skip();
         }
@@ -567,7 +567,7 @@ class ThemedTabButton : public wxControl
         void OnLeftUp(wxMouseEvent& event)
         {
             if (dragging_ && dragHandler_) {
-                dragHandler_(ClientToScreen(event.GetPosition()));
+                dragHandler_(ClientToScreen(event.GetPosition()), dragStartPosition_, true);
             }
             const bool inside = GetClientRect().Contains(event.GetPosition());
             const bool wasPressed = pressed_;

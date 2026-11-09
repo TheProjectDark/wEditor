@@ -74,6 +74,10 @@ class MainFrame : public wxFrame
         //debounce for highlight
         wxTimer highlightTimer;
         wxStopWatch tabDragScrollClock;
+        wxTimer tabDragAnimationTimer;
+        int animatedTabId = wxID_NONE;
+        wxPoint tabDragTargetPosition;
+        bool animatingTabDrop = false;
 
         //wildcard
         static const wxString wildcard;
@@ -105,7 +109,8 @@ class MainFrame : public wxFrame
                    const wxString& language = "Text");
         void ActivateTab(int tabId);
         void CloseTab(int tabId);
-        void MoveTab(int tabId, const wxPoint& screenPosition);
+        void MoveTab(int tabId, const wxPoint& screenPosition, const wxPoint& grabOffset, bool finished);
+        void OnTabDragAnimation(wxTimerEvent& event);
         EditorTab* FindTab(int tabId);
         void UpdateTabLabels();
         void UpdateTabTheme();
